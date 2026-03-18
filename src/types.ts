@@ -1,26 +1,28 @@
 export interface Env {
-  DB: D1Database;
-  BUCKET: R2Bucket;
-  JOB_QUEUE: Queue;
   ADMIN_TOKEN: string;
-  GITHUB_PAT: string;
+  BUCKET: R2Bucket;
   CONTAINER_URL: string;
+  DB: D1Database;
+  GITHUB_PAT: string;
+  JOB_QUEUE: Queue;
   WEBHOOK_URL?: string;
   WORKER_URL?: string;
 }
 
 export interface QueueMessage {
+  attempt: number;
+  idempotency_key: string;
   job_id: string;
   repo_id: string;
-  idempotency_key: string;
-  attempt: number;
   trigger_source: "schedule" | "manual";
 }
 
 export interface ContainerRequest {
+  callback_token: string;
+  callback_url: string;
   job_id: string;
+  object_key_prefix: string;
   owner: string;
-  repo: string;
   pat: string;
   r2_credentials: {
     access_key_id: string;
@@ -28,26 +30,24 @@ export interface ContainerRequest {
     endpoint: string;
     bucket: string;
   };
-  object_key_prefix: string;
-  callback_url: string;
-  callback_token: string;
+  repo: string;
 }
 
 export interface ContainerCallbackPayload {
+  error?: string;
   job_id: string;
-  success: boolean;
+  metadata_key?: string;
+  object_key?: string;
   sha256?: string;
   size_bytes?: number;
-  object_key?: string;
-  metadata_key?: string;
-  error?: string;
+  success: boolean;
 }
 
 export interface WebhookPayload {
-  event: "backup.failed";
-  repo: { id: string; owner: string; name: string };
-  job_id: string;
   attempts: number;
   error: string;
+  event: "backup.failed";
+  job_id: string;
+  repo: { id: string; owner: string; name: string };
   timestamp: string;
 }

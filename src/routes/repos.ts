@@ -1,6 +1,6 @@
-import { Hono } from "hono";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, or, inArray } from "drizzle-orm";
+import { Hono } from "hono";
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
 import type { Env, QueueMessage } from "../types.ts";
@@ -15,7 +15,7 @@ app.post("/", async (c) => {
     interval_minutes?: number;
   }>();
 
-  if (!body.owner || !body.name) {
+  if (!(body.owner && body.name)) {
     return c.json({ error: "owner and name are required" }, 400);
   }
 
@@ -33,7 +33,7 @@ app.post("/", async (c) => {
         "User-Agent": "gitcask/1.0",
         Accept: "application/vnd.github+json",
       },
-    },
+    }
   );
 
   if (!ghRes.ok) {
@@ -41,16 +41,14 @@ app.post("/", async (c) => {
       {
         error: `GitHub repo not accessible: ${ghRes.status} ${ghRes.statusText}`,
       },
-      422,
+      422
     );
   }
 
   const db = drizzle(c.env.DB);
   const id = generateId();
   const timestamp = now();
-  const nextRun = new Date(
-    Date.now() + interval * 60 * 1000,
-  ).toISOString();
+  const nextRun = new Date(Date.now() + interval * 60 * 1000).toISOString();
 
   await db.insert(schema.repos).values({
     id,
@@ -120,10 +118,7 @@ app.patch("/:id", async (c) => {
     updates.enabled = body.enabled;
   }
 
-  await db
-    .update(schema.repos)
-    .set(updates)
-    .where(eq(schema.repos.id, id));
+  await db.update(schema.repos).set(updates).where(eq(schema.repos.id, id));
 
   const [updated] = await db
     .select()
@@ -180,7 +175,7 @@ app.delete("/:id", async (c) => {
   const listed = await c.env.BUCKET.list({ prefix });
   if (listed.objects.length > 0) {
     await Promise.all(
-      listed.objects.map((obj) => c.env.BUCKET.delete(obj.key)),
+      listed.objects.map((obj) => c.env.BUCKET.delete(obj.key))
     );
   }
 
@@ -208,11 +203,8 @@ app.post("/:id/trigger", async (c) => {
     .where(
       and(
         eq(schema.jobs.repo_id, id),
-        or(
-          eq(schema.jobs.status, "queued"),
-          eq(schema.jobs.status, "running"),
-        ),
-      ),
+        or(eq(schema.jobs.status, "queued"), eq(schema.jobs.status, "running"))
+      )
     );
 
   if (activeJob) {
@@ -225,18 +217,18 @@ app.post("/:id/trigger", async (c) => {
     .select()
     .from(schema.runs)
     .where(
-      and(
-        eq(schema.runs.repo_id, id),
-        eq(schema.runs.status, "completed"),
-      ),
+      and(eq(schema.runs.repo_id, id), eq(schema.runs.status, "completed"))
     );
 
   const hasRecentSuccess = recentRuns.some(
-    (r) => r.finished_at && r.finished_at > fiveMinAgo,
+    (r) => r.finished_at && r.finished_at > fiveMinAgo
   );
 
   if (hasRecentSuccess) {
-    return c.json({ error: "Cooldown: a backup completed within the last 5 minutes" }, 429);
+    return c.json(
+      { error: "Cooldown: a backup completed within the last 5 minutes" },
+      429
+    );
   }
 
   // Create job and enqueue

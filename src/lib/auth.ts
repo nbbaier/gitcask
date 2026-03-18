@@ -3,8 +3,8 @@ import type { Env } from "../types.ts";
 
 export async function adminAuth(
   c: Context<{ Bindings: Env }>,
-  next: Next,
-): Promise<Response | void> {
+  next: Next
+): Promise<Response | undefined> {
   const authHeader = c.req.header("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return c.json({ error: "Missing or invalid Authorization header" }, 401);

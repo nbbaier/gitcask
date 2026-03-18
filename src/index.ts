@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { adminAuth } from "./lib/auth.ts";
+import { handleQueueMessage } from "./queue/consumer.ts";
+import callbackRoutes from "./routes/callback.ts";
+import healthRoutes from "./routes/health.ts";
 import reposRoutes from "./routes/repos.ts";
 import runsRoutes from "./routes/runs.ts";
-import healthRoutes from "./routes/health.ts";
-import callbackRoutes from "./routes/callback.ts";
-import { handleQueueMessage } from "./queue/consumer.ts";
-import { handleScheduledEvent } from "./services/scheduler.ts";
 import { runRetentionCleanup } from "./services/retention.ts";
+import { handleScheduledEvent } from "./services/scheduler.ts";
 import type { Env, QueueMessage } from "./types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -30,10 +30,7 @@ app.route("/", api);
 export default {
   fetch: app.fetch,
 
-  async queue(
-    batch: MessageBatch<QueueMessage>,
-    env: Env,
-  ): Promise<void> {
+  async queue(batch: MessageBatch<QueueMessage>, env: Env): Promise<void> {
     for (const message of batch.messages) {
       await handleQueueMessage(message, env);
     }
@@ -42,7 +39,7 @@ export default {
   async scheduled(
     _event: ScheduledEvent,
     env: Env,
-    _ctx: ExecutionContext,
+    _ctx: ExecutionContext
   ): Promise<void> {
     await handleScheduledEvent(env);
     // Run retention cleanup on every cron tick (lightweight if nothing to do)

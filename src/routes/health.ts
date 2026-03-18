@@ -25,7 +25,10 @@ app.get("/", async (c) => {
   }
 
   const healthy = checks.d1 === "ok";
-  return c.json({ status: healthy ? "ok" : "degraded", checks }, healthy ? 200 : 503);
+  return c.json(
+    { status: healthy ? "ok" : "degraded", checks },
+    healthy ? 200 : 503
+  );
 });
 
 export default app;

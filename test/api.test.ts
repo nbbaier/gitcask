@@ -1,9 +1,9 @@
 import {
-  env,
   createExecutionContext,
+  env,
   waitOnExecutionContext,
 } from "cloudflare:test";
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import worker from "../src/index.ts";
 
 // Helper to apply migrations
@@ -64,7 +64,7 @@ async function applyMigrations(db: D1Database) {
 function makeRequest(
   path: string,
   options: RequestInit = {},
-  token = "test-admin-token",
+  token = "test-admin-token"
 ): Request {
   const headers = new Headers(options.headers);
   if (token) {
@@ -153,7 +153,7 @@ describe("Gitcask API", () => {
       const id = crypto.randomUUID();
       const ts = new Date().toISOString();
       await env.DB.prepare(
-        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       )
         .bind(id, "test-owner", "test-repo", 60, 1, ts, ts, ts)
         .run();
@@ -190,7 +190,7 @@ describe("Gitcask API", () => {
       const id = crypto.randomUUID();
       const ts = new Date().toISOString();
       await env.DB.prepare(
-        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       )
         .bind(id, "test-owner", "test-repo", 60, 1, ts, ts, ts)
         .run();
@@ -205,9 +205,7 @@ describe("Gitcask API", () => {
       expect(body.deleted).toBe(true);
 
       // Verify it's gone
-      const check = await env.DB.prepare(
-        "SELECT * FROM repos WHERE id = ?",
-      )
+      const check = await env.DB.prepare("SELECT * FROM repos WHERE id = ?")
         .bind(id)
         .first();
       expect(check).toBeNull();
@@ -246,25 +244,15 @@ describe("Gitcask API", () => {
       const ts = new Date().toISOString();
 
       await env.DB.prepare(
-        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       )
         .bind(repoId, "test-owner", "test-repo", 60, 1, ts, ts, ts)
         .run();
 
       await env.DB.prepare(
-        "INSERT INTO jobs (id, repo_id, trigger_source, idempotency_key, status, attempt, deadline_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO jobs (id, repo_id, trigger_source, idempotency_key, status, attempt, deadline_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
       )
-        .bind(
-          jobId,
-          repoId,
-          "manual",
-          "test-key",
-          "running",
-          1,
-          ts,
-          ts,
-          ts,
-        )
+        .bind(jobId, repoId, "manual", "test-key", "running", 1, ts, ts, ts)
         .run();
 
       const req = makeRequest(`/internal/jobs/${jobId}/complete`, {
@@ -289,16 +277,14 @@ describe("Gitcask API", () => {
       expect(body.status).toBe("completed");
 
       // Verify job is completed
-      const job = await env.DB.prepare(
-        "SELECT status FROM jobs WHERE id = ?",
-      )
+      const job = await env.DB.prepare("SELECT status FROM jobs WHERE id = ?")
         .bind(jobId)
         .first<{ status: string }>();
       expect(job?.status).toBe("completed");
 
       // Verify run was created
       const run = await env.DB.prepare(
-        "SELECT status FROM runs WHERE job_id = ?",
+        "SELECT status FROM runs WHERE job_id = ?"
       )
         .bind(jobId)
         .first<{ status: string }>();
@@ -306,7 +292,7 @@ describe("Gitcask API", () => {
 
       // Verify artifact was created
       const artifact = await env.DB.prepare(
-        "SELECT sha256, size_bytes FROM artifacts WHERE repo_id = ?",
+        "SELECT sha256, size_bytes FROM artifacts WHERE repo_id = ?"
       )
         .bind(repoId)
         .first<{ sha256: string; size_bytes: number }>();
@@ -315,7 +301,7 @@ describe("Gitcask API", () => {
 
       // Verify latest.json was written to R2
       const latest = await env.BUCKET.get(
-        "repos/test-owner/test-repo/latest.json",
+        "repos/test-owner/test-repo/latest.json"
       );
       expect(latest).not.toBeNull();
     });
@@ -326,25 +312,15 @@ describe("Gitcask API", () => {
       const ts = new Date().toISOString();
 
       await env.DB.prepare(
-        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       )
         .bind(repoId, "test-owner", "test-repo", 60, 1, ts, ts, ts)
         .run();
 
       await env.DB.prepare(
-        "INSERT INTO jobs (id, repo_id, trigger_source, idempotency_key, status, attempt, deadline_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO jobs (id, repo_id, trigger_source, idempotency_key, status, attempt, deadline_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
       )
-        .bind(
-          jobId,
-          repoId,
-          "manual",
-          "test-key",
-          "running",
-          1,
-          ts,
-          ts,
-          ts,
-        )
+        .bind(jobId, repoId, "manual", "test-key", "running", 1, ts, ts, ts)
         .run();
 
       const req = makeRequest(`/internal/jobs/${jobId}/complete`, {
@@ -367,7 +343,7 @@ describe("Gitcask API", () => {
 
       // Verify job is back to queued with incremented attempt
       const job = await env.DB.prepare(
-        "SELECT status, attempt FROM jobs WHERE id = ?",
+        "SELECT status, attempt FROM jobs WHERE id = ?"
       )
         .bind(jobId)
         .first<{ status: string; attempt: number }>();

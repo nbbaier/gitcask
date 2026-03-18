@@ -1,6 +1,6 @@
-import { Hono } from "hono";
-import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { Hono } from "hono";
 import * as schema from "../db/schema.ts";
 import type { Env } from "../types.ts";
 

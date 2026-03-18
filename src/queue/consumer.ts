@@ -1,12 +1,12 @@
-import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
 import * as schema from "../db/schema.ts";
 import { now } from "../lib/id.ts";
-import type { Env, QueueMessage, ContainerRequest } from "../types.ts";
+import type { ContainerRequest, Env, QueueMessage } from "../types.ts";
 
 export async function handleQueueMessage(
   message: Message<QueueMessage>,
-  env: Env,
+  env: Env
 ): Promise<void> {
   const { job_id, repo_id, idempotency_key } = message.body;
   const db = drizzle(env.DB);
@@ -57,10 +57,13 @@ export async function handleQueueMessage(
     repo: repo.name,
     pat: env.GITHUB_PAT,
     r2_credentials: {
-      access_key_id: (env as Record<string, string>).R2_ACCESS_KEY_ID ?? "",
-      secret_access_key:
-        (env as Record<string, string>).R2_SECRET_ACCESS_KEY ?? "",
-      endpoint: (env as Record<string, string>).R2_ENDPOINT ?? "",
+      access_key_id: (
+        (env as Record<string, string>).R2_ACCESS_KEY_ID ?? ""
+      ).trim(),
+      secret_access_key: (
+        (env as Record<string, string>).R2_SECRET_ACCESS_KEY ?? ""
+      ).trim(),
+      endpoint: ((env as Record<string, string>).R2_ENDPOINT ?? "").trim(),
       bucket: "gitcask-backups",
     },
     object_key_prefix: `repos/${repo.owner}/${repo.name}/snapshots/`,
@@ -90,7 +93,7 @@ export async function handleQueueMessage(
 
     // Update job back to running so the callback handler can process it
     // (it's already running from above)
-    const workerUrl = env.WORKER_URL ?? `http://localhost:8787`;
+    const workerUrl = env.WORKER_URL ?? "http://localhost:8787";
     try {
       await fetch(`${workerUrl}/internal/jobs/${job_id}/complete`, {
         method: "POST",

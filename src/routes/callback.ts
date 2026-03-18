@@ -1,9 +1,9 @@
-import { Hono } from "hono";
-import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { Hono } from "hono";
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
-import type { Env, ContainerCallbackPayload } from "../types.ts";
+import type { ContainerCallbackPayload, Env } from "../types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -78,87 +78,83 @@ app.post("/:id/complete", async (c) => {
           sha256: payload.sha256,
           size_bytes: payload.size_bytes,
           timestamp,
-        }),
+        })
       );
     }
 
     return c.json({ status: "completed" });
-  } else {
-    // Handle failure
-    const maxRetries = 4; // initial + 3 retries
-    const attempt = job.attempt;
+  }
+  // Handle failure
+  const maxRetries = 4; // initial + 3 retries
+  const attempt = job.attempt;
 
-    if (attempt < maxRetries) {
-      // Retry: update attempt count, re-enqueue with backoff
-      const nextAttempt = attempt + 1;
-      const backoffMs = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+  if (attempt < maxRetries) {
+    // Retry: update attempt count, re-enqueue with backoff
+    const nextAttempt = attempt + 1;
+    const backoffMs = 2 ** attempt * 1000; // 2s, 4s, 8s
 
-      await db
-        .update(schema.jobs)
-        .set({
-          status: "queued",
-          attempt: nextAttempt,
-          deadline_at: new Date(
-            Date.now() + 15 * 60 * 1000,
-          ).toISOString(),
-          updated_at: timestamp,
-        })
-        .where(eq(schema.jobs.id, jobId));
+    await db
+      .update(schema.jobs)
+      .set({
+        status: "queued",
+        attempt: nextAttempt,
+        deadline_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        updated_at: timestamp,
+      })
+      .where(eq(schema.jobs.id, jobId));
 
-      await c.env.JOB_QUEUE.send(
-        {
-          job_id: jobId,
-          repo_id: job.repo_id,
-          idempotency_key: job.idempotency_key,
-          attempt: nextAttempt,
-          trigger_source: job.trigger_source,
-        },
-        { delaySeconds: Math.ceil(backoffMs / 1000) },
-      );
-
-      return c.json({ status: "retrying", attempt: nextAttempt });
-    } else {
-      // Final failure
-      await db
-        .update(schema.jobs)
-        .set({ status: "failed", updated_at: timestamp })
-        .where(eq(schema.jobs.id, jobId));
-
-      // Create failed run record
-      await db.insert(schema.runs).values({
-        id: generateId(),
-        repo_id: job.repo_id,
+    await c.env.JOB_QUEUE.send(
+      {
         job_id: jobId,
-        status: "failed",
-        started_at: job.created_at,
-        finished_at: timestamp,
+        repo_id: job.repo_id,
+        idempotency_key: job.idempotency_key,
+        attempt: nextAttempt,
+        trigger_source: job.trigger_source,
+      },
+      { delaySeconds: Math.ceil(backoffMs / 1000) }
+    );
+
+    return c.json({ status: "retrying", attempt: nextAttempt });
+  }
+  // Final failure
+  await db
+    .update(schema.jobs)
+    .set({ status: "failed", updated_at: timestamp })
+    .where(eq(schema.jobs.id, jobId));
+
+  // Create failed run record
+  await db.insert(schema.runs).values({
+    id: generateId(),
+    repo_id: job.repo_id,
+    job_id: jobId,
+    status: "failed",
+    started_at: job.created_at,
+    finished_at: timestamp,
+    error: payload.error ?? "Unknown error",
+    created_at: timestamp,
+  });
+
+  // Fire webhook
+  if (c.env.WEBHOOK_URL) {
+    const [repo] = await db
+      .select()
+      .from(schema.repos)
+      .where(eq(schema.repos.id, job.repo_id));
+
+    if (repo) {
+      const { fireWebhook } = await import("../lib/webhook.ts");
+      await fireWebhook(c.env.WEBHOOK_URL, {
+        event: "backup.failed",
+        repo: { id: repo.id, owner: repo.owner, name: repo.name },
+        job_id: jobId,
+        attempts: maxRetries,
         error: payload.error ?? "Unknown error",
-        created_at: timestamp,
+        timestamp,
       });
-
-      // Fire webhook
-      if (c.env.WEBHOOK_URL) {
-        const [repo] = await db
-          .select()
-          .from(schema.repos)
-          .where(eq(schema.repos.id, job.repo_id));
-
-        if (repo) {
-          const { fireWebhook } = await import("../lib/webhook.ts");
-          await fireWebhook(c.env.WEBHOOK_URL, {
-            event: "backup.failed",
-            repo: { id: repo.id, owner: repo.owner, name: repo.name },
-            job_id: jobId,
-            attempts: maxRetries,
-            error: payload.error ?? "Unknown error",
-            timestamp,
-          });
-        }
-      }
-
-      return c.json({ status: "failed" });
     }
   }
+
+  return c.json({ status: "failed" });
 });
 
 export default app;

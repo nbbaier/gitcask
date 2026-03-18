@@ -2,9 +2,11 @@ import type { WebhookPayload } from "../types.ts";
 
 export async function fireWebhook(
   url: string | undefined,
-  payload: WebhookPayload,
+  payload: WebhookPayload
 ): Promise<void> {
-  if (!url) return;
+  if (!url) {
+    return;
+  }
   try {
     await fetch(url, {
       method: "POST",

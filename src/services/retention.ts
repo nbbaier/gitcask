@@ -1,5 +1,5 @@
+import { and, desc, eq, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { eq, lt, and, desc } from "drizzle-orm";
 import * as schema from "../db/schema.ts";
 import type { Env } from "../types.ts";
 
@@ -22,7 +22,7 @@ export async function runRetentionCleanup(env: Env): Promise<void> {
       .orderBy(desc(schema.artifacts.created_at));
 
     const minTimeThreshold = new Date(
-      Date.now() - MIN_TIME_DAYS * 24 * 60 * 60 * 1000,
+      Date.now() - MIN_TIME_DAYS * 24 * 60 * 60 * 1000
     ).toISOString();
 
     // Keep all within min time window, then cap at MAX_COUNT beyond that
@@ -45,7 +45,7 @@ export async function runRetentionCleanup(env: Env): Promise<void> {
       // Also delete the metadata sidecar
       const metadataKey = artifact.object_key.replace(
         ".tar.gz",
-        "_metadata.json",
+        "_metadata.json"
       );
       await env.BUCKET.delete(metadataKey);
       await db
@@ -56,12 +56,10 @@ export async function runRetentionCleanup(env: Env): Promise<void> {
 
   // TTL cleanup: remove old run metadata
   const ttlThreshold = new Date(
-    Date.now() - RUN_METADATA_TTL_DAYS * 24 * 60 * 60 * 1000,
+    Date.now() - RUN_METADATA_TTL_DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  await db
-    .delete(schema.runs)
-    .where(lt(schema.runs.created_at, ttlThreshold));
+  await db.delete(schema.runs).where(lt(schema.runs.created_at, ttlThreshold));
 
   // Clean up old completed/failed jobs without runs
   await db
@@ -69,8 +67,8 @@ export async function runRetentionCleanup(env: Env): Promise<void> {
     .where(
       and(
         lt(schema.jobs.created_at, ttlThreshold),
-        eq(schema.jobs.status, "completed"),
-      ),
+        eq(schema.jobs.status, "completed")
+      )
     );
 
   await db
@@ -78,7 +76,7 @@ export async function runRetentionCleanup(env: Env): Promise<void> {
     .where(
       and(
         lt(schema.jobs.created_at, ttlThreshold),
-        eq(schema.jobs.status, "failed"),
-      ),
+        eq(schema.jobs.status, "failed")
+      )
     );
 }

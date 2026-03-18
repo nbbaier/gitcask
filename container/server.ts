@@ -1,13 +1,15 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { createHash } from "crypto";
-import { mkdtemp, rm, readFile } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 interface BackupRequest {
+  callback_token: string;
+  callback_url: string;
   job_id: string;
+  object_key_prefix: string;
   owner: string;
-  repo: string;
   pat: string;
   r2_credentials: {
     access_key_id: string;
@@ -15,9 +17,7 @@ interface BackupRequest {
     endpoint: string;
     bucket: string;
   };
-  object_key_prefix: string;
-  callback_url: string;
-  callback_token: string;
+  repo: string;
 }
 
 const server = Bun.serve({
@@ -70,10 +70,13 @@ async function processBackup(payload: BackupRequest): Promise<void> {
 
     // 1. git clone --mirror
     const cloneUrl = `https://x-access-token:${pat}@github.com/${owner}/${repo}.git`;
-    const cloneProc = Bun.spawn(["git", "clone", "--mirror", cloneUrl, mirrorDir], {
-      cwd: workDir,
-      stderr: "pipe",
-    });
+    const cloneProc = Bun.spawn(
+      ["git", "clone", "--mirror", cloneUrl, mirrorDir],
+      {
+        cwd: workDir,
+        stderr: "pipe",
+      }
+    );
     const cloneExit = await cloneProc.exited;
     if (cloneExit !== 0) {
       const stderr = await new Response(cloneProc.stderr).text();
@@ -81,10 +84,13 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     }
 
     // 2. tar czf
-    const tarProc = Bun.spawn(["tar", "czf", tarPath, "-C", workDir, `${repo}.git`], {
-      cwd: workDir,
-      stderr: "pipe",
-    });
+    const tarProc = Bun.spawn(
+      ["tar", "czf", tarPath, "-C", workDir, `${repo}.git`],
+      {
+        cwd: workDir,
+        stderr: "pipe",
+      }
+    );
     const tarExit = await tarProc.exited;
     if (tarExit !== 0) {
       throw new Error(`tar failed (exit ${tarExit})`);
@@ -115,7 +121,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
         Body: tarData,
         ChecksumSHA256: Buffer.from(sha256, "hex").toString("base64"),
         ContentType: "application/gzip",
-      }),
+      })
     );
 
     // 5. Fetch GitHub metadata
@@ -127,7 +133,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
           "User-Agent": "gitcask/1.0",
           Accept: "application/vnd.github+json",
         },
-      },
+      }
     );
 
     let metadata: Record<string, unknown> = {};
@@ -151,7 +157,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
         Key: metadataKey,
         Body: JSON.stringify(metadata, null, 2),
         ContentType: "application/json",
-      }),
+      })
     );
 
     // 7. Callback to worker with success
@@ -174,6 +180,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
   } finally {
     // Cleanup temp directory
     if (workDir) {
+      // biome-ignore lint: ignore error when removing temp directory
       await rm(workDir, { recursive: true, force: true }).catch(() => {});
     }
   }
@@ -182,7 +189,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
 async function sendCallback(
   url: string,
   token: string,
-  payload: Record<string, unknown>,
+  payload: Record<string, unknown>
 ): Promise<void> {
   try {
     const res = await fetch(url, {

@@ -1,5 +1,5 @@
+import { and, eq, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { eq, and, lte } from "drizzle-orm";
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
 import type { Env, QueueMessage } from "../types.ts";
@@ -15,8 +15,8 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
     .where(
       and(
         eq(schema.repos.enabled, true),
-        lte(schema.repos.next_run_at, timestamp),
-      ),
+        lte(schema.repos.next_run_at, timestamp)
+      )
     );
 
   for (const repo of dueRepos) {
@@ -49,7 +49,7 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
 
     // Advance next_run_at
     const nextRun = new Date(
-      Date.now() + repo.interval_minutes * 60 * 1000,
+      Date.now() + repo.interval_minutes * 60 * 1000
     ).toISOString();
 
     await db
@@ -65,8 +65,8 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
     .where(
       and(
         eq(schema.jobs.status, "running"),
-        lte(schema.jobs.deadline_at, timestamp),
-      ),
+        lte(schema.jobs.deadline_at, timestamp)
+      )
     );
 
   for (const job of staleJobs) {

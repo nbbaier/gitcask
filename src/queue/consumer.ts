@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+// biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
 import { now } from "../lib/id.ts";
 import type { ContainerRequest, Env, QueueMessage } from "../types.ts";
@@ -57,13 +58,9 @@ export async function handleQueueMessage(
     repo: repo.name,
     pat: env.GITHUB_PAT,
     r2_credentials: {
-      access_key_id: (
-        (env as Record<string, string>).R2_ACCESS_KEY_ID ?? ""
-      ).trim(),
-      secret_access_key: (
-        (env as Record<string, string>).R2_SECRET_ACCESS_KEY ?? ""
-      ).trim(),
-      endpoint: ((env as Record<string, string>).R2_ENDPOINT ?? "").trim(),
+      access_key_id: env.R2_ACCESS_KEY_ID?.trim() ?? "",
+      secret_access_key: env.R2_SECRET_ACCESS_KEY?.trim() ?? "",
+      endpoint: env.R2_ENDPOINT?.trim() ?? "",
       bucket: "gitcask-backups",
     },
     object_key_prefix: `repos/${repo.owner}/${repo.name}/snapshots/`,

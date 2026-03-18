@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `repos_owner_name_unique` ON `repos` (`owner`,`name`);

@@ -10,7 +10,7 @@ export function formatJson(data: unknown): string {
   return JSON.stringify(data, null, 2);
 }
 
-export function formatTable(rows: Row[], columns: Column[]): string {
+function formatTable(rows: Row[], columns: Column[]): string {
   if (rows.length === 0) {
     return "No results.";
   }

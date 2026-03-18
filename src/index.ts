@@ -29,6 +29,7 @@ api.route("/runs", runsRoutes);
 api.route("/jobs", jobsRoutes);
 app.route("/", api);
 
+// biome-ignore lint/performance/noBarrelFile: We need to export the container for the container to be used
 export { BackupContainer } from "./container.ts";
 
 export default {

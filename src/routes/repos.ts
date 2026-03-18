@@ -4,7 +4,7 @@ import { Hono } from "hono";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
-import type { ContainerRequest, Env, QueueMessage } from "../types.ts";
+import type { ContainerRequest, Env } from "../types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
 

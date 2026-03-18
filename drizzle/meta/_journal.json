@@ -15,6 +15,13 @@
       "when": 1773856759899,
       "tag": "0001_abandoned_the_twelve",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773860869378,
+      "tag": "0002_strong_corsair",
+      "breakpoints": true
     }
   ]
 }

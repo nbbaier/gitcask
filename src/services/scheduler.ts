@@ -74,7 +74,12 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
     // Treat as failed callback
     await db
       .update(schema.jobs)
-      .set({ status: "failed", updated_at: timestamp })
+      .set({
+        status: "failed",
+        stage: null,
+        stage_updated_at: null,
+        updated_at: timestamp,
+      })
       .where(eq(schema.jobs.id, job.id));
 
     await db.insert(schema.runs).values({

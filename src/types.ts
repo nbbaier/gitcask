@@ -1,3 +1,11 @@
+export type JobStage =
+  | "cloning"
+  | "archiving"
+  | "hashing"
+  | "uploading"
+  | "fetching_metadata"
+  | "uploading_metadata";
+
 export interface Env {
   ADMIN_TOKEN: string;
   BUCKET: R2Bucket;
@@ -27,6 +35,7 @@ export interface ContainerRequest {
   object_key_prefix: string;
   owner: string;
   pat: string;
+  progress_url: string;
   r2_credentials: {
     access_key_id: string;
     secret_access_key: string;

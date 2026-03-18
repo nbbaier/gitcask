@@ -65,6 +65,7 @@ export async function handleQueueMessage(
     },
     object_key_prefix: `repos/${repo.owner}/${repo.name}/snapshots/`,
     callback_url: `${env.WORKER_URL}/internal/jobs/${job_id}/complete`,
+    progress_url: `${env.WORKER_URL}/internal/jobs/${job_id}/progress`,
     callback_token: env.ADMIN_TOKEN,
   };
 

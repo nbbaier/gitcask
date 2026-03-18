@@ -3,6 +3,9 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "bin": {
+    "gitcask": "./cli/index.ts"
+  },
   "devDependencies": {
     "@biomejs/biome": "2.4.7",
     "@cloudflare/vitest-pool-workers": "^0.13.2",
@@ -19,6 +22,7 @@
     "db:migrate:local": "wrangler d1 migrations apply gitcask-db --local",
     "test": "vitest run",
     "test:watch": "vitest",
+    "cli": "bun ./cli/index.ts",
     "check": "ultracite check",
     "fix": "ultracite fix"
   },
@@ -27,6 +31,7 @@
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20260317.1",
+    "citty": "^0.2.1",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.12.8"
   }

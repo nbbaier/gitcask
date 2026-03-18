@@ -11,6 +11,7 @@ interface BackupRequest {
   object_key_prefix: string;
   owner: string;
   pat: string;
+  progress_url: string;
   r2_credentials: {
     access_key_id: string;
     secret_access_key: string;
@@ -58,6 +59,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     r2_credentials,
     object_key_prefix,
     callback_url,
+    progress_url,
     callback_token,
   } = payload;
 
@@ -69,6 +71,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     const tarPath = join(workDir, `${repo}.tar.gz`);
 
     // 1. git clone --mirror
+    await reportProgress(progress_url, callback_token, "cloning");
     const cloneUrl = `https://x-access-token:${pat}@github.com/${owner}/${repo}.git`;
     const cloneProc = Bun.spawn(
       ["git", "clone", "--mirror", cloneUrl, mirrorDir],
@@ -87,6 +90,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     }
 
     // 2. tar czf
+    await reportProgress(progress_url, callback_token, "archiving");
     const tarProc = Bun.spawn(
       ["tar", "czf", tarPath, "-C", workDir, `${repo}.git`],
       {
@@ -100,6 +104,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     }
 
     // 3. Compute SHA-256
+    await reportProgress(progress_url, callback_token, "hashing");
     const tarFile = Bun.file(tarPath);
     const tarBuffer = await tarFile.arrayBuffer();
     const tarData = new Uint8Array(tarBuffer);
@@ -107,6 +112,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     const sizeBytes = tarFile.size;
 
     // 4. Upload to R2
+    await reportProgress(progress_url, callback_token, "uploading");
     const s3 = new S3Client({
       region: "auto",
       endpoint: r2_credentials.endpoint,
@@ -130,6 +136,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     );
 
     // 5. Fetch GitHub metadata
+    await reportProgress(progress_url, callback_token, "fetching_metadata");
     const metaRes = await fetch(
       `https://api.github.com/repos/${owner}/${repo}`,
       {
@@ -155,6 +162,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     }
 
     // 6. Upload metadata.json
+    await reportProgress(progress_url, callback_token, "uploading_metadata");
     const metadataKey = objectKey.replace(".tar.gz", "_metadata.json");
     await s3.send(
       new PutObjectCommand({
@@ -188,6 +196,25 @@ async function processBackup(payload: BackupRequest): Promise<void> {
       // biome-ignore lint: ignore error when removing temp directory
       await rm(workDir, { recursive: true, force: true }).catch(() => {});
     }
+  }
+}
+
+async function reportProgress(
+  url: string,
+  token: string,
+  stage: string
+): Promise<void> {
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ stage }),
+    });
+  } catch {
+    // Progress reporting is best-effort; don't fail the backup
   }
 }
 

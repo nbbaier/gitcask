@@ -1,0 +1,33 @@
+name = "gitcask"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[vars]
+CONTAINER_URL = "http://localhost:8788"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "gitcask-db"
+database_id = "gitcask-db-id"
+migrations_dir = "drizzle"
+
+# R2 Bucket
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "gitcask-backups"
+
+# Queue Producer
+[[queues.producers]]
+queue = "gitcask-jobs"
+binding = "JOB_QUEUE"
+
+# Queue Consumer
+[[queues.consumers]]
+queue = "gitcask-jobs"
+max_batch_size = 1
+max_concurrency = 4
+
+# Cron Trigger - every 5 minutes
+[triggers]
+crons = ["*/5 * * * *"]

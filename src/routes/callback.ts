@@ -11,7 +11,19 @@ const app = new Hono<{ Bindings: Env }>();
 // POST /internal/jobs/:id/progress - Container stage update
 app.post("/:id/progress", async (c) => {
   const jobId = c.req.param("id");
-  const { stage } = await c.req.json<{ stage: JobStage }>();
+  const body = await c.req.json<{ stage: unknown }>();
+  const validStages: JobStage[] = [
+    "cloning",
+    "archiving",
+    "hashing",
+    "uploading",
+    "fetching_metadata",
+    "uploading_metadata",
+  ];
+  const stage = body.stage as JobStage;
+  if (!(stage && validStages.includes(stage))) {
+    return c.json({ error: "Invalid stage" }, 400);
+  }
 
   const db = drizzle(c.env.DB);
 

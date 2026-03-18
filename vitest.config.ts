@@ -9,7 +9,6 @@ export default defineConfig({
         bindings: {
           ADMIN_TOKEN: "test-admin-token",
           GITHUB_PAT: "test-github-pat",
-          CONTAINER_URL: "http://localhost:8788",
         },
       },
     }),

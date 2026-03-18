@@ -14,7 +14,9 @@ app.get("/", async (c) => {
   }
 
   try {
-    const res = await fetch(`${c.env.CONTAINER_URL}/health`, {
+    const id = c.env.CONTAINER.idFromName("backup");
+    const stub = c.env.CONTAINER.get(id);
+    const res = await stub.fetch("http://container/health", {
       signal: AbortSignal.timeout(5000),
     });
     checks.container = res.ok ? "ok" : `error: ${res.status}`;

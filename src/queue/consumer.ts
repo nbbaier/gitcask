@@ -69,7 +69,9 @@ export async function handleQueueMessage(
   };
 
   try {
-    const res = await fetch(`${env.CONTAINER_URL}/backup`, {
+    const id = env.CONTAINER.idFromName("backup");
+    const stub = env.CONTAINER.get(id);
+    const res = await stub.fetch("http://container/backup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(containerPayload),

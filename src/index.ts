@@ -27,6 +27,8 @@ api.route("/repos", reposRoutes);
 api.route("/runs", runsRoutes);
 app.route("/", api);
 
+export { BackupContainer } from "./container.ts";
+
 export default {
   fetch: app.fetch,
 

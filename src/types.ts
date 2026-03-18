@@ -1,7 +1,7 @@
 export interface Env {
   ADMIN_TOKEN: string;
   BUCKET: R2Bucket;
-  CONTAINER_URL: string;
+  CONTAINER: DurableObjectNamespace;
   DB: D1Database;
   GITHUB_PAT: string;
   JOB_QUEUE: Queue;

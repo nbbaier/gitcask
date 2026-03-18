@@ -1,27 +1,16 @@
-/**
- * ==================================================================
- * 🚀 This file was generated using `wrangler-cfg migrate` command. 🚀
- * 
- * 📌 Learn more, contribute, or report issues:
- *    👉 [https://github.com/jalmonter/wrangler-cfg#readme]
- *     
- * You can safely remove this banner if you want.
- * ==================================================================
- */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gitcask",
   "main": "src/index.ts",
   "compatibility_date": "2024-12-01",
   "vars": {
-    "CONTAINER_URL": "http://localhost:8788",
     "WORKER_URL": "http://localhost:8787"
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "gitcask-db",
-      "database_id": "gitcask-db-id",
+      "database_id": "8fb034f5-4e68-4f19-adad-b112ec374e00",
       "migrations_dir": "drizzle"
     }
   ],
@@ -46,9 +35,73 @@
       }
     ]
   },
-  "triggers": {
-    "crons": [
-      "*/5 * * * *"
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "CONTAINER",
+        "class_name": "BackupContainer"
+      }
     ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["BackupContainer"]
+    }
+  ],
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "containers": [
+    {
+      "name": "gitcask-backup",
+      "class_name": "BackupContainer",
+      "image": "./container/Dockerfile",
+      "instance_type": "basic",
+      "max_instances": 1
+    }
+  ],
+  "env": {
+    "production": {
+      "vars": {
+        "WORKER_URL": "https://gitcask-production.nico-baier.workers.dev"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "gitcask-db",
+          "database_id": "8fb034f5-4e68-4f19-adad-b112ec374e00",
+          "migrations_dir": "drizzle"
+        }
+      ],
+      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "gitcask-backups" }],
+      "queues": {
+        "producers": [{ "queue": "gitcask-jobs", "binding": "JOB_QUEUE" }],
+        "consumers": [
+          { "queue": "gitcask-jobs", "max_batch_size": 1, "max_concurrency": 4 }
+        ]
+      },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "CONTAINER",
+            "class_name": "BackupContainer"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["BackupContainer"]
+        }
+      ],
+      "containers": [
+        {
+          "name": "gitcask-backup",
+          "class_name": "BackupContainer",
+          "image": "./container/Dockerfile",
+          "instance_type": "basic",
+          "max_instances": 1
+        }
+      ]
+    }
   }
 }

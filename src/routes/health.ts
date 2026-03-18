@@ -6,7 +6,6 @@ const app = new Hono<{ Bindings: Env }>();
 app.get("/", async (c) => {
   const checks: Record<string, string> = {};
 
-  // Check D1
   try {
     await c.env.DB.prepare("SELECT 1").first();
     checks.d1 = "ok";
@@ -14,7 +13,6 @@ app.get("/", async (c) => {
     checks.d1 = "unreachable";
   }
 
-  // Check container
   try {
     const res = await fetch(`${c.env.CONTAINER_URL}/health`, {
       signal: AbortSignal.timeout(5000),

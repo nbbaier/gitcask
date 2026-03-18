@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
+// biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
 import type { Env } from "../types.ts";
 
@@ -20,7 +21,6 @@ app.get("/:id", async (c) => {
     return c.json({ error: "Run not found" }, 404);
   }
 
-  // Include artifacts for this run
   const runArtifacts = await db
     .select()
     .from(schema.artifacts)

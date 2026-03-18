@@ -1,5 +1,6 @@
 import { and, eq, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+// biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
 import type { Env, QueueMessage } from "../types.ts";

@@ -1,6 +1,7 @@
 import { and, eq, inArray, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
+// biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
 import type { Env, QueueMessage } from "../types.ts";

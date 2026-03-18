@@ -14,6 +14,19 @@ interface Repo {
   updated_at: string;
 }
 
+interface Job {
+  attempt: number;
+  created_at: string;
+  deadline_at: string | null;
+  id: string;
+  repo_id: string;
+  stage: string | null;
+  stage_updated_at: string | null;
+  status: string;
+  trigger_source: string;
+  updated_at: string;
+}
+
 interface Run {
   created_at: string;
   error: string | null;
@@ -115,6 +128,13 @@ export function createClient({ url, token }: ClientOptions) {
         `/repos/${id}/trigger`,
         { method: "POST" }
       ),
+
+    listJobs: (repoId?: string) => {
+      const params = repoId ? `?repo_id=${repoId}` : "";
+      return request<Job[]>(url, token, `/jobs${params}`);
+    },
+
+    getJob: (jobId: string) => request<Job>(url, token, `/jobs/${jobId}`),
 
     listRuns: (repoId: string) =>
       request<Run[]>(url, token, `/repos/${repoId}/runs`),

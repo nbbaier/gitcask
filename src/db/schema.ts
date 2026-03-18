@@ -27,6 +27,17 @@ export const jobs = sqliteTable("jobs", {
   status: text("status", {
     enum: ["queued", "running", "completed", "failed"],
   }).notNull(),
+  stage: text("stage", {
+    enum: [
+      "cloning",
+      "archiving",
+      "hashing",
+      "uploading",
+      "fetching_metadata",
+      "uploading_metadata",
+    ],
+  }),
+  stage_updated_at: text("stage_updated_at"),
   attempt: integer("attempt").notNull().default(1),
   deadline_at: text("deadline_at"),
   created_at: text("created_at").notNull(),

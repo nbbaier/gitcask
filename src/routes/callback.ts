@@ -4,9 +4,38 @@ import { Hono } from "hono";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
-import type { ContainerCallbackPayload, Env } from "../types.ts";
+import type { ContainerCallbackPayload, Env, JobStage } from "../types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
+
+// POST /internal/jobs/:id/progress - Container stage update
+app.post("/:id/progress", async (c) => {
+  const jobId = c.req.param("id");
+  const { stage } = await c.req.json<{ stage: JobStage }>();
+
+  const db = drizzle(c.env.DB);
+
+  const [job] = await db
+    .select()
+    .from(schema.jobs)
+    .where(eq(schema.jobs.id, jobId));
+
+  if (!job) {
+    return c.json({ error: "Job not found" }, 404);
+  }
+
+  if (job.status !== "running") {
+    return c.json({ error: "Job is not in running state" }, 409);
+  }
+
+  const timestamp = now();
+  await db
+    .update(schema.jobs)
+    .set({ stage, stage_updated_at: timestamp, updated_at: timestamp })
+    .where(eq(schema.jobs.id, jobId));
+
+  return c.json({ status: "updated", stage });
+});
 
 // POST /internal/jobs/:id/complete - Container callback
 app.post("/:id/complete", async (c) => {
@@ -34,7 +63,12 @@ app.post("/:id/complete", async (c) => {
     // Update job to completed
     await db
       .update(schema.jobs)
-      .set({ status: "completed", updated_at: timestamp })
+      .set({
+        status: "completed",
+        stage: null,
+        stage_updated_at: null,
+        updated_at: timestamp,
+      })
       .where(eq(schema.jobs.id, jobId));
 
     // Create run record
@@ -98,6 +132,8 @@ app.post("/:id/complete", async (c) => {
       .update(schema.jobs)
       .set({
         status: "queued",
+        stage: null,
+        stage_updated_at: null,
         attempt: nextAttempt,
         deadline_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
         updated_at: timestamp,
@@ -120,7 +156,12 @@ app.post("/:id/complete", async (c) => {
   // Final failure
   await db
     .update(schema.jobs)
-    .set({ status: "failed", updated_at: timestamp })
+    .set({
+      status: "failed",
+      stage: null,
+      stage_updated_at: null,
+      updated_at: timestamp,
+    })
     .where(eq(schema.jobs.id, jobId));
 
   // Create failed run record

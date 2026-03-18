@@ -51,6 +51,55 @@ export function formatRepos(repos: Row[]): string {
   return formatTable(rows, repoColumns);
 }
 
+const jobColumns: Column[] = [
+  { key: "id", label: "ID" },
+  { key: "repo_id", label: "REPO ID" },
+  { key: "status", label: "STATUS" },
+  { key: "stage", label: "STAGE" },
+  { key: "attempt", label: "ATTEMPT" },
+  { key: "elapsed", label: "ELAPSED" },
+  { key: "trigger_source", label: "TRIGGER" },
+];
+
+function formatElapsed(createdAt: string): string {
+  const ms = Date.now() - new Date(createdAt).getTime();
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}m${remainingSeconds}s`;
+}
+
+export function formatJobs(jobs: Row[]): string {
+  const rows = jobs.map((j) => ({
+    ...j,
+    stage: j.stage ?? "-",
+    elapsed: formatElapsed(j.created_at as string),
+  }));
+  return formatTable(rows, jobColumns);
+}
+
+export function formatJobDetail(job: Row): string {
+  const elapsed = formatElapsed(job.created_at as string);
+  const lines = [
+    `Job:      ${job.id}`,
+    `Repo:     ${job.repo_id}`,
+    `Status:   ${job.status}`,
+    `Stage:    ${job.stage ?? "-"}`,
+    `Attempt:  ${job.attempt}`,
+    `Trigger:  ${job.trigger_source}`,
+    `Elapsed:  ${elapsed}`,
+    `Deadline: ${job.deadline_at ?? "-"}`,
+    `Created:  ${job.created_at}`,
+  ];
+  if (job.stage_updated_at) {
+    lines.push(`Stage at: ${job.stage_updated_at}`);
+  }
+  return lines.join("\n");
+}
+
 const runColumns: Column[] = [
   { key: "id", label: "ID" },
   { key: "status", label: "STATUS" },

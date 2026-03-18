@@ -3,6 +3,7 @@ import { adminAuth } from "./lib/auth.ts";
 import { handleQueueMessage } from "./queue/consumer.ts";
 import callbackRoutes from "./routes/callback.ts";
 import healthRoutes from "./routes/health.ts";
+import jobsRoutes from "./routes/jobs.ts";
 import reposRoutes from "./routes/repos.ts";
 import runsRoutes from "./routes/runs.ts";
 import { runRetentionCleanup } from "./services/retention.ts";
@@ -25,6 +26,7 @@ const api = new Hono<{ Bindings: Env }>();
 api.use("*", adminAuth);
 api.route("/repos", reposRoutes);
 api.route("/runs", runsRoutes);
+api.route("/jobs", jobsRoutes);
 app.route("/", api);
 
 export { BackupContainer } from "./container.ts";

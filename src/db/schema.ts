@@ -1,15 +1,19 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
 
-export const repos = sqliteTable("repos", {
-  id: text("id").primaryKey(),
-  owner: text("owner").notNull(),
-  name: text("name").notNull(),
-  interval_minutes: integer("interval_minutes").notNull().default(60),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-  next_run_at: text("next_run_at"),
-  created_at: text("created_at").notNull(),
-  updated_at: text("updated_at").notNull(),
-});
+export const repos = sqliteTable(
+  "repos",
+  {
+    id: text("id").primaryKey(),
+    owner: text("owner").notNull(),
+    name: text("name").notNull(),
+    interval_minutes: integer("interval_minutes").notNull().default(60),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    next_run_at: text("next_run_at"),
+    created_at: text("created_at").notNull(),
+    updated_at: text("updated_at").notNull(),
+  },
+  (t) => ({ uniqOwnerName: unique().on(t.owner, t.name) })
+);
 
 export const jobs = sqliteTable("jobs", {
   id: text("id").primaryKey(),

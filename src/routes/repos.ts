@@ -24,6 +24,19 @@ app.post("/", async (c) => {
     return c.json({ error: "interval_minutes must be >= 5" }, 400);
   }
 
+  // Check for duplicate
+  const db = drizzle(c.env.DB);
+  const [existing] = await db
+    .select()
+    .from(schema.repos)
+    .where(
+      and(eq(schema.repos.owner, body.owner), eq(schema.repos.name, body.name))
+    );
+
+  if (existing) {
+    return c.json({ error: "Repo already exists", id: existing.id }, 409);
+  }
+
   // Validate repo exists and PAT has access
   const ghRes = await fetch(
     `https://api.github.com/repos/${body.owner}/${body.name}`,
@@ -45,7 +58,6 @@ app.post("/", async (c) => {
     );
   }
 
-  const db = drizzle(c.env.DB);
   const id = generateId();
   const timestamp = now();
   const nextRun = new Date(Date.now() + interval * 60 * 1000).toISOString();
@@ -172,12 +184,16 @@ app.delete("/:id", async (c) => {
 
   // Async R2 cleanup: list and delete all objects under this repo's prefix
   const prefix = `repos/${existing.owner}/${existing.name}/`;
-  const listed = await c.env.BUCKET.list({ prefix });
-  if (listed.objects.length > 0) {
-    await Promise.all(
-      listed.objects.map((obj) => c.env.BUCKET.delete(obj.key))
-    );
-  }
+  let cursor: string | undefined;
+  do {
+    const listed = await c.env.BUCKET.list({ prefix, cursor });
+    if (listed.objects.length > 0) {
+      await Promise.all(
+        listed.objects.map((obj) => c.env.BUCKET.delete(obj.key))
+      );
+    }
+    cursor = listed.truncated ? listed.cursor : undefined;
+  } while (cursor);
 
   return c.json({ deleted: true });
 });

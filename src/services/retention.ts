@@ -1,4 +1,4 @@
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "../db/schema.ts";
 import type { Env } from "../types.ts";
@@ -54,12 +54,42 @@ export async function runRetentionCleanup(env: Env): Promise<void> {
     }
   }
 
-  // TTL cleanup: remove old run metadata
+  // TTL cleanup: remove old run metadata and their artifacts
   const ttlThreshold = new Date(
     Date.now() - RUN_METADATA_TTL_DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  await db.delete(schema.runs).where(lt(schema.runs.created_at, ttlThreshold));
+  const staleRuns = await db
+    .select({ id: schema.runs.id })
+    .from(schema.runs)
+    .where(lt(schema.runs.created_at, ttlThreshold));
+
+  if (staleRuns.length > 0) {
+    const staleRunIds = staleRuns.map((r) => r.id);
+
+    // Delete artifacts (R2 + D1) for stale runs
+    const orphanedArtifacts = await db
+      .select()
+      .from(schema.artifacts)
+      .where(inArray(schema.artifacts.run_id, staleRunIds));
+
+    for (const artifact of orphanedArtifacts) {
+      await env.BUCKET.delete(artifact.object_key);
+      const metadataKey = artifact.object_key.replace(
+        ".tar.gz",
+        "_metadata.json"
+      );
+      await env.BUCKET.delete(metadataKey);
+    }
+
+    if (orphanedArtifacts.length > 0) {
+      await db
+        .delete(schema.artifacts)
+        .where(inArray(schema.artifacts.run_id, staleRunIds));
+    }
+
+    await db.delete(schema.runs).where(inArray(schema.runs.id, staleRunIds));
+  }
 
   // Clean up old completed/failed jobs without runs
   await db

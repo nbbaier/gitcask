@@ -67,7 +67,7 @@ export async function handleQueueMessage(
       bucket: "gitcask-backups",
     },
     object_key_prefix: `repos/${repo.owner}/${repo.name}/snapshots/`,
-    callback_url: `${env.WORKER_URL ?? env.CONTAINER_URL}/internal/jobs/${job_id}/complete`,
+    callback_url: `${env.WORKER_URL}/internal/jobs/${job_id}/complete`,
     callback_token: env.ADMIN_TOKEN,
   };
 
@@ -93,9 +93,8 @@ export async function handleQueueMessage(
 
     // Update job back to running so the callback handler can process it
     // (it's already running from above)
-    const workerUrl = env.WORKER_URL ?? "http://localhost:8787";
     try {
-      await fetch(`${workerUrl}/internal/jobs/${job_id}/complete`, {
+      await fetch(`${env.WORKER_URL}/internal/jobs/${job_id}/complete`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

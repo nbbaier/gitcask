@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -80,7 +80,10 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     const cloneExit = await cloneProc.exited;
     if (cloneExit !== 0) {
       const stderr = await new Response(cloneProc.stderr).text();
-      throw new Error(`git clone failed (exit ${cloneExit}): ${stderr}`);
+      const sanitizedStderr = stderr.replaceAll(pat, "***");
+      throw new Error(
+        `git clone failed (exit ${cloneExit}): ${sanitizedStderr}`
+      );
     }
 
     // 2. tar czf
@@ -97,9 +100,11 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     }
 
     // 3. Compute SHA-256
-    const tarData = await readFile(tarPath);
+    const tarFile = Bun.file(tarPath);
+    const tarBuffer = await tarFile.arrayBuffer();
+    const tarData = new Uint8Array(tarBuffer);
     const sha256 = createHash("sha256").update(tarData).digest("hex");
-    const sizeBytes = tarData.length;
+    const sizeBytes = tarFile.size;
 
     // 4. Upload to R2
     const s3 = new S3Client({

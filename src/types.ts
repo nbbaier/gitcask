@@ -6,7 +6,7 @@ export interface Env {
   GITHUB_PAT: string;
   JOB_QUEUE: Queue;
   WEBHOOK_URL?: string;
-  WORKER_URL?: string;
+  WORKER_URL: string;
 }
 
 export interface QueueMessage {

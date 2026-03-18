@@ -6,6 +6,7 @@
       "name": "gitcask",
       "dependencies": {
         "@cloudflare/workers-types": "^4.20260317.1",
+        "citty": "^0.2.1",
         "drizzle-orm": "^0.45.1",
         "hono": "^4.12.8",
       },

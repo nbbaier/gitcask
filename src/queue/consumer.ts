@@ -12,6 +12,8 @@ export async function handleQueueMessage(
   const { job_id, repo_id, idempotency_key } = message.body;
   const db = drizzle(env.DB);
 
+  console.log("[queue] received message", { job_id, repo_id, idempotency_key });
+
   // Deduplicate: check if job still exists and is in queued state
   const [job] = await db
     .select()
@@ -19,12 +21,17 @@ export async function handleQueueMessage(
     .where(eq(schema.jobs.id, job_id));
 
   if (!job || job.status !== "queued") {
+    console.log("[queue] skipping job — not found or not queued", {
+      job_id,
+      status: job?.status,
+    });
     message.ack();
     return;
   }
 
   // Check idempotency key matches
   if (job.idempotency_key !== idempotency_key) {
+    console.log("[queue] skipping job — idempotency key mismatch", { job_id });
     message.ack();
     return;
   }
@@ -36,6 +43,7 @@ export async function handleQueueMessage(
     .where(eq(schema.repos.id, repo_id));
 
   if (!repo) {
+    console.log("[queue] skipping job — repo not found", { job_id, repo_id });
     message.ack();
     return;
   }
@@ -50,6 +58,11 @@ export async function handleQueueMessage(
       updated_at: timestamp,
     })
     .where(eq(schema.jobs.id, job_id));
+
+  console.log("[queue] job marked running", {
+    job_id,
+    repo: `${repo.owner}/${repo.name}`,
+  });
 
   // Dispatch to container (async - container will call back)
   const containerPayload: ContainerRequest = {
@@ -70,6 +83,10 @@ export async function handleQueueMessage(
   };
 
   try {
+    console.log("[queue] dispatching to container", {
+      job_id,
+      repo: `${repo.owner}/${repo.name}`,
+    });
     const id = env.CONTAINER.idFromName("backup");
     const stub = env.CONTAINER.get(id);
     const res = await stub.fetch("http://container/backup", {
@@ -81,9 +98,16 @@ export async function handleQueueMessage(
     if (!res.ok && res.status !== 202) {
       throw new Error(`Container returned ${res.status}`);
     }
+    console.log("[queue] container accepted job", {
+      job_id,
+      status: res.status,
+    });
   } catch (err) {
     // Container dispatch failed - mark job back to queued for retry via callback
-    console.error("Container dispatch failed", err);
+    console.error("[queue] container dispatch failed", {
+      job_id,
+      error: err instanceof Error ? err.message : String(err),
+    });
     // Simulate a failed callback
     const callbackPayload = {
       job_id,

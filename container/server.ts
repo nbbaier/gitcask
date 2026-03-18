@@ -33,12 +33,17 @@ const server = Bun.serve({
     if (url.pathname === "/backup" && req.method === "POST") {
       const payload = (await req.json()) as BackupRequest;
 
+      console.log("[container] backup request received", {
+        job_id: payload.job_id,
+        repo: `${payload.owner}/${payload.repo}`,
+      });
+
       // Return 202 immediately, process async
       const response = Response.json({ accepted: true }, { status: 202 });
 
       // Process backup in background
       processBackup(payload).catch((err) => {
-        console.error("Background backup failed:", err);
+        console.error("[container] background backup failed:", err);
       });
 
       return response;
@@ -69,6 +74,13 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     workDir = await mkdtemp(join(tmpdir(), "gitcask-"));
     const mirrorDir = join(workDir, `${repo}.git`);
     const tarPath = join(workDir, `${repo}.tar.gz`);
+
+    console.log("[container] starting backup", {
+      job_id,
+      repo: `${owner}/${repo}`,
+      progress_url,
+      callback_url,
+    });
 
     // 1. git clone --mirror
     await reportProgress(progress_url, callback_token, "cloning");
@@ -173,6 +185,13 @@ async function processBackup(payload: BackupRequest): Promise<void> {
       })
     );
 
+    console.log("[container] backup complete, sending callback", {
+      job_id,
+      object_key: objectKey,
+      sha256,
+      size_bytes: sizeBytes,
+    });
+
     // 7. Callback to worker with success
     await sendCallback(callback_url, callback_token, {
       job_id,
@@ -205,7 +224,8 @@ async function reportProgress(
   stage: string
 ): Promise<void> {
   try {
-    await fetch(url, {
+    console.log(`[container] reporting stage: ${stage}`);
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -213,8 +233,19 @@ async function reportProgress(
       },
       body: JSON.stringify({ stage }),
     });
-  } catch {
+    if (!res.ok) {
+      console.error("[container] progress report rejected", {
+        stage,
+        status: res.status,
+        body: await res.text(),
+      });
+    }
+  } catch (err) {
     // Progress reporting is best-effort; don't fail the backup
+    console.error(
+      `[container] progress report failed for stage "${stage}":`,
+      err
+    );
   }
 }
 

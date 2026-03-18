@@ -9,6 +9,8 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
   const db = drizzle(env.DB);
   const timestamp = now();
 
+  console.log("[scheduler] cron tick");
+
   // Find repos due for backup
   const dueRepos = await db
     .select()
@@ -19,6 +21,8 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
         lte(schema.repos.next_run_at, timestamp)
       )
     );
+
+  console.log("[scheduler] repos due for backup", { count: dueRepos.length });
 
   for (const repo of dueRepos) {
     const jobId = generateId();
@@ -48,6 +52,11 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
 
     await env.JOB_QUEUE.send(message);
 
+    console.log("[scheduler] enqueued job", {
+      job_id: jobId,
+      repo: `${repo.owner}/${repo.name}`,
+    });
+
     // Advance next_run_at
     const nextRun = new Date(
       Date.now() + repo.interval_minutes * 60 * 1000
@@ -70,7 +79,17 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
       )
     );
 
+  if (staleJobs.length > 0) {
+    console.log("[scheduler] found stale jobs past deadline", {
+      count: staleJobs.length,
+    });
+  }
+
   for (const job of staleJobs) {
+    console.log("[scheduler] marking stale job failed", {
+      job_id: job.id,
+      deadline_at: job.deadline_at,
+    });
     // Treat as failed callback
     await db
       .update(schema.jobs)

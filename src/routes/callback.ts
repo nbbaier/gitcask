@@ -21,7 +21,14 @@ app.post("/:id/progress", async (c) => {
     "uploading_metadata",
   ];
   const stage = body.stage as JobStage;
+
+  console.log("[progress] received", { job_id: jobId, stage });
+
   if (!(stage && validStages.includes(stage))) {
+    console.log("[progress] rejected — invalid stage", {
+      job_id: jobId,
+      stage,
+    });
     return c.json({ error: "Invalid stage" }, 400);
   }
 
@@ -33,10 +40,15 @@ app.post("/:id/progress", async (c) => {
     .where(eq(schema.jobs.id, jobId));
 
   if (!job) {
+    console.log("[progress] rejected — job not found", { job_id: jobId });
     return c.json({ error: "Job not found" }, 404);
   }
 
   if (job.status !== "running") {
+    console.log("[progress] rejected — job not running", {
+      job_id: jobId,
+      status: job.status,
+    });
     return c.json({ error: "Job is not in running state" }, 409);
   }
 
@@ -46,6 +58,7 @@ app.post("/:id/progress", async (c) => {
     .set({ stage, stage_updated_at: timestamp, updated_at: timestamp })
     .where(eq(schema.jobs.id, jobId));
 
+  console.log("[progress] stage updated", { job_id: jobId, stage });
   return c.json({ status: "updated", stage });
 });
 
@@ -53,6 +66,12 @@ app.post("/:id/progress", async (c) => {
 app.post("/:id/complete", async (c) => {
   const jobId = c.req.param("id");
   const payload = await c.req.json<ContainerCallbackPayload>();
+
+  console.log("[callback] received", {
+    job_id: jobId,
+    success: payload.success,
+    error: payload.error,
+  });
 
   const db = drizzle(c.env.DB);
 
@@ -62,10 +81,15 @@ app.post("/:id/complete", async (c) => {
     .where(eq(schema.jobs.id, jobId));
 
   if (!job) {
+    console.log("[callback] rejected — job not found", { job_id: jobId });
     return c.json({ error: "Job not found" }, 404);
   }
 
   if (job.status !== "running") {
+    console.log("[callback] rejected — job not running", {
+      job_id: jobId,
+      status: job.status,
+    });
     return c.json({ error: "Job is not in running state" }, 409);
   }
 
@@ -82,6 +106,12 @@ app.post("/:id/complete", async (c) => {
         updated_at: timestamp,
       })
       .where(eq(schema.jobs.id, jobId));
+
+    console.log("[callback] job completed", {
+      job_id: jobId,
+      object_key: payload.object_key,
+      size_bytes: payload.size_bytes,
+    });
 
     // Create run record
     const runId = generateId();
@@ -163,9 +193,19 @@ app.post("/:id/complete", async (c) => {
       { delaySeconds: Math.ceil(backoffMs / 1000) }
     );
 
+    console.log("[callback] job retrying", {
+      job_id: jobId,
+      attempt: nextAttempt,
+      backoff_ms: backoffMs,
+    });
     return c.json({ status: "retrying", attempt: nextAttempt });
   }
   // Final failure
+  console.log("[callback] job failed permanently", {
+    job_id: jobId,
+    attempts: maxRetries,
+    error: payload.error,
+  });
   await db
     .update(schema.jobs)
     .set({

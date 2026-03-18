@@ -30,6 +30,50 @@ const server = Bun.serve({
       return Response.json({ status: "ok" });
     }
 
+    // Diagnostic: test outbound connectivity from container
+    if (url.pathname === "/debug/connectivity" && req.method === "POST") {
+      const { target_url, token } = (await req.json()) as {
+        target_url: string;
+        token?: string;
+      };
+      const checks: Record<string, unknown> = {};
+
+      // 1. DNS resolution
+      try {
+        const host = new URL(target_url).hostname;
+        const resolved = await Bun.dns.resolve(host);
+        checks.dns = { host, resolved };
+      } catch (err) {
+        checks.dns = {
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+
+      // 2. HTTPS fetch to target URL
+      try {
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        const res = await fetch(target_url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ stage: "cloning" }),
+          signal: AbortSignal.timeout(5000),
+        });
+        const body = await res.text();
+        checks.fetch = { status: res.status, body };
+      } catch (err) {
+        checks.fetch = {
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+
+      return Response.json(checks);
+    }
+
     if (url.pathname === "/backup" && req.method === "POST") {
       const payload = (await req.json()) as BackupRequest;
 

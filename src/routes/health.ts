@@ -31,4 +31,32 @@ app.get("/", async (c) => {
   );
 });
 
+// Debug: test container's outbound connectivity to the worker
+app.post("/debug/connectivity", async (c) => {
+  const { job_id } = await c.req.json<{ job_id?: string }>();
+  const testJobId = job_id ?? "test-connectivity";
+  const targetUrl = `${c.env.WORKER_URL}/internal/jobs/${testJobId}/progress`;
+
+  try {
+    const id = c.env.CONTAINER.idFromName("backup");
+    const stub = c.env.CONTAINER.get(id);
+    const res = await stub.fetch("http://container/debug/connectivity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        target_url: targetUrl,
+        token: c.env.ADMIN_TOKEN,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    const result = await res.json();
+    return c.json({ target_url: targetUrl, container_result: result });
+  } catch (err) {
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      500
+    );
+  }
+});
+
 export default app;

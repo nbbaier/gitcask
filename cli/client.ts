@@ -136,6 +136,14 @@ export function createClient({ url, token }: ClientOptions) {
 
     getJob: (jobId: string) => request<Job>(url, token, `/jobs/${jobId}`),
 
+    cancelJob: (jobId: string) =>
+      request<{ status: string; job_id: string }>(
+        url,
+        token,
+        `/jobs/${jobId}/cancel`,
+        { method: "POST" }
+      ),
+
     listRuns: (repoId: string) =>
       request<Run[]>(url, token, `/repos/${repoId}/runs`),
 

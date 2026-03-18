@@ -59,4 +59,22 @@ app.post("/debug/connectivity", async (c) => {
   }
 });
 
+// Debug: get recent job statuses from the container
+app.get("/debug/container-jobs", async (c) => {
+  try {
+    const id = c.env.CONTAINER.idFromName("backup");
+    const stub = c.env.CONTAINER.get(id);
+    const res = await stub.fetch("http://container/debug/jobs", {
+      signal: AbortSignal.timeout(5000),
+    });
+    const result = await res.json();
+    return c.json(result);
+  } catch (err) {
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      500
+    );
+  }
+});
+
 export default app;

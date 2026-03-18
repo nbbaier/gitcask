@@ -4,7 +4,7 @@ import { Hono } from "hono";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
-import type { Env, QueueMessage } from "../types.ts";
+import type { ContainerRequest, Env, QueueMessage } from "../types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -248,7 +248,7 @@ app.post("/:id/trigger", async (c) => {
     );
   }
 
-  // Create job and enqueue
+  // Create job and dispatch directly to container (bypassing queue)
   const jobId = generateId();
   const timestamp = now();
   const idempotencyKey = `manual_${id}_${Date.now()}`;
@@ -258,24 +258,71 @@ app.post("/:id/trigger", async (c) => {
     repo_id: id,
     trigger_source: "manual",
     idempotency_key: idempotencyKey,
-    status: "queued",
+    status: "running",
     attempt: 1,
     deadline_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     created_at: timestamp,
     updated_at: timestamp,
   });
 
-  const message: QueueMessage = {
+  console.log("[trigger] dispatching directly to container", {
     job_id: jobId,
-    repo_id: id,
-    idempotency_key: idempotencyKey,
-    attempt: 1,
-    trigger_source: "manual",
+    repo: `${repo.owner}/${repo.name}`,
+  });
+
+  const containerPayload: ContainerRequest = {
+    job_id: jobId,
+    owner: repo.owner,
+    repo: repo.name,
+    pat: c.env.GITHUB_PAT,
+    r2_credentials: {
+      access_key_id: c.env.R2_ACCESS_KEY_ID?.trim() ?? "",
+      secret_access_key: c.env.R2_SECRET_ACCESS_KEY?.trim() ?? "",
+      endpoint: c.env.R2_ENDPOINT?.trim() ?? "",
+      bucket: "gitcask-backups",
+    },
+    object_key_prefix: `repos/${repo.owner}/${repo.name}/snapshots/`,
+    callback_url: `${c.env.WORKER_URL}/internal/jobs/${jobId}/complete`,
+    progress_url: `${c.env.WORKER_URL}/internal/jobs/${jobId}/progress`,
+    callback_token: c.env.ADMIN_TOKEN,
   };
 
-  await c.env.JOB_QUEUE.send(message);
+  // Use waitUntil to dispatch in the background so the HTTP response doesn't cancel it
+  const env = c.env;
+  c.executionCtx.waitUntil(
+    (async () => {
+      try {
+        const doId = env.CONTAINER.idFromName("backup");
+        const stub = env.CONTAINER.get(doId);
+        const res = await stub.fetch("http://container/backup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(containerPayload),
+        });
 
-  return c.json({ job_id: jobId, status: "queued" }, 202);
+        if (!res.ok && res.status !== 202) {
+          throw new Error(`Container returned ${res.status}`);
+        }
+
+        console.log("[trigger] container accepted job", {
+          job_id: jobId,
+          status: res.status,
+        });
+      } catch (err) {
+        console.error("[trigger] container dispatch failed", {
+          job_id: jobId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        const failDb = drizzle(env.DB);
+        await failDb
+          .update(schema.jobs)
+          .set({ status: "failed", updated_at: now() })
+          .where(eq(schema.jobs.id, jobId));
+      }
+    })()
+  );
+
+  return c.json({ job_id: jobId, status: "running" }, 202);
 });
 
 // GET /repos/:id/runs - List runs for a repo

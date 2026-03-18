@@ -35,5 +35,21 @@ export const jobsCommand = defineCommand({
         console.log(isJson() ? formatJson(job) : formatJobDetail(job));
       },
     }),
+
+    cancel: defineCommand({
+      meta: { name: "cancel", description: "Cancel a queued or running job" },
+      args: {
+        jobId: {
+          type: "positional",
+          description: "Job ID",
+          required: true,
+        },
+      },
+      run: async ({ args }) => {
+        const client = getClient();
+        const result = await client.cancelJob(args.jobId);
+        console.log(`Cancelled job ${result.job_id}`);
+      },
+    }),
   },
 });

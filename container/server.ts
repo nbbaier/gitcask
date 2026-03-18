@@ -21,6 +21,26 @@ interface BackupRequest {
   repo: string;
 }
 
+// Store recent job statuses for debugging (container logs aren't visible in wrangler tail)
+const recentJobs: {
+  job_id: string;
+  status: string;
+  error?: string;
+  timestamp: string;
+}[] = [];
+
+function trackJob(job_id: string, status: string, error?: string) {
+  recentJobs.unshift({
+    job_id,
+    status,
+    error,
+    timestamp: new Date().toISOString(),
+  });
+  if (recentJobs.length > 20) {
+    recentJobs.pop();
+  }
+}
+
 const server = Bun.serve({
   port: 8788,
   async fetch(req: Request): Promise<Response> {
@@ -28,6 +48,11 @@ const server = Bun.serve({
 
     if (url.pathname === "/health" && req.method === "GET") {
       return Response.json({ status: "ok" });
+    }
+
+    // Debug: get recent job statuses from this container instance
+    if (url.pathname === "/debug/jobs" && req.method === "GET") {
+      return Response.json(recentJobs);
     }
 
     // Diagnostic: test outbound connectivity from container
@@ -86,7 +111,13 @@ const server = Bun.serve({
       const response = Response.json({ accepted: true }, { status: 202 });
 
       // Process backup in background
+      trackJob(payload.job_id, "accepted");
       processBackup(payload).catch((err) => {
+        trackJob(
+          payload.job_id,
+          "failed",
+          err instanceof Error ? err.message : String(err)
+        );
         console.error("[container] background backup failed:", err);
       });
 
@@ -125,9 +156,11 @@ async function processBackup(payload: BackupRequest): Promise<void> {
       progress_url,
       callback_url,
     });
+    trackJob(job_id, "starting");
 
     // 1. git clone --mirror
     await reportProgress(progress_url, callback_token, "cloning");
+    trackJob(job_id, "cloning");
     const cloneUrl = `https://x-access-token:${pat}@github.com/${owner}/${repo}.git`;
     const cloneProc = Bun.spawn(
       ["git", "clone", "--mirror", cloneUrl, mirrorDir],
@@ -229,6 +262,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
       })
     );
 
+    trackJob(job_id, "complete");
     console.log("[container] backup complete, sending callback", {
       job_id,
       object_key: objectKey,

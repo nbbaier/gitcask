@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+// @ts-expect-error -- wrangler text module rule
+import landingHtml from "./landing/index.html";
 import { adminAuth } from "./lib/auth.ts";
 import { handleQueueMessage } from "./queue/consumer.ts";
 import callbackRoutes from "./routes/callback.ts";
@@ -11,6 +13,9 @@ import { handleScheduledEvent } from "./services/scheduler.ts";
 import type { Env, QueueMessage } from "./types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
+
+// Landing page
+app.get("/", (c) => c.html(landingHtml));
 
 // Public endpoint
 app.route("/health", healthRoutes);

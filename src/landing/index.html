@@ -748,6 +748,36 @@
       color: var(--text);
     }
 
+    .skip-link {
+      position: absolute;
+      top: -9999px;
+      left: 1rem;
+      z-index: 100;
+      padding: 0.5rem 1rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--bg);
+      text-decoration: none;
+      background: var(--accent);
+      border-radius: 4px;
+    }
+
+    .skip-link:focus {
+      top: 1rem;
+    }
+
+    .button:focus-visible,
+    .command-button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .nav-links a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 2px;
+    }
+
     .reveal {
       opacity: 0;
       transform: translateY(24px);
@@ -901,6 +931,7 @@
     </style>
   </head>
   <body>
+    <a href="#main-content" class="skip-link">Skip to content</a>
     <nav class="site-nav" aria-label="Primary">
       <a class="brand" href="/">
         <span class="brand-mark" aria-hidden="true">gc</span>
@@ -914,13 +945,13 @@
         <a
           href="https://github.com/nbbaier/gitcask"
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           >GitHub</a
         >
       </div>
     </nav>
 
-    <main class="shell">
+    <main class="shell" id="main-content">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
           <p class="eyebrow">Self-hosted GitHub backup service</p>
@@ -936,7 +967,7 @@
               class="button button-primary"
               href="https://github.com/nbbaier/gitcask"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
             >
               View source
             </a>
@@ -1056,8 +1087,8 @@
         </div>
       </section>
 
-      <section class="reveal" aria-labelledby="proof-title">
-        <p class="section-kicker">Why it exists</p>
+      <section class="reveal" aria-labelledby="why-title">
+        <p id="why-title" class="section-kicker">Why it exists</p>
         <div class="support-grid">
           <article class="support-item">
             <h2 id="proof-title">Own the backup path.</h2>
@@ -1201,7 +1232,7 @@
               class="button button-primary"
               href="https://github.com/nbbaier/gitcask"
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
             >
               Open repository
             </a>
@@ -1243,7 +1274,7 @@
       <a
         href="https://github.com/nbbaier/gitcask"
         target="_blank"
-        rel="noopener"
+        rel="noopener noreferrer"
         >GitHub</a
       >
     </footer>
@@ -1305,10 +1336,21 @@
 
     const terminal = document.querySelector("[data-terminal]");
     if (terminal instanceof HTMLElement && !prefersReducedMotion) {
+      let rafId = null;
+      let lastClientX = 0;
+      let lastClientY = 0;
       window.addEventListener("pointermove", (event) => {
-        const x = (event.clientX / window.innerWidth - 0.5) * 6;
-        const y = (event.clientY / window.innerHeight - 0.5) * -4;
-        terminal.style.transform = `perspective(1200px) rotateY(${x - 10}deg) rotateX(${y + 5}deg)`;
+        lastClientX = event.clientX;
+        lastClientY = event.clientY;
+        if (rafId !== null) {
+          return;
+        }
+        rafId = requestAnimationFrame(() => {
+          const x = (lastClientX / window.innerWidth - 0.5) * 6;
+          const y = (lastClientY / window.innerHeight - 0.5) * -4;
+          terminal.style.transform = `perspective(1200px) rotateY(${x - 10}deg) rotateX(${y + 5}deg)`;
+          rafId = null;
+        });
       });
     }
     </script>

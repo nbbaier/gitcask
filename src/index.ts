@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 // @ts-expect-error -- wrangler text module rule
 import landingHtml from "./landing/index.html";
+// @ts-expect-error -- wrangler text module rule
+import landingCss from "./landing/styles.css";
 import { adminAuth } from "./lib/auth.ts";
 import { handleQueueMessage } from "./queue/consumer.ts";
 import callbackRoutes from "./routes/callback.ts";
@@ -16,6 +18,9 @@ const app = new Hono<{ Bindings: Env }>();
 
 // Landing page
 app.get("/", (c) => c.html(landingHtml));
+app.get("/styles.css", (c) => {
+  return c.text(landingCss, 200, { "Content-Type": "text/css" });
+});
 
 // Public endpoint
 app.route("/health", healthRoutes);

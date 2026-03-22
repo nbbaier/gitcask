@@ -27,8 +27,8 @@
   --token-comment: #748194;
   --white: #ffffff;
   --text-caption: 0.8rem;
-  --hero-pad-top: clamp(6rem, 10vw, 8rem);
-  --hero-pad-bottom: clamp(3rem, 7vw, 5rem);
+  --hero-pad-top: clamp(2rem, 4vw, 3rem);
+  --hero-pad-bottom: clamp(2rem, 4vw, 3rem);
   color-scheme: dark;
 }
 
@@ -105,8 +105,9 @@ code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: var(--page);
-  padding: 1rem 0;
+  width: 100%;
+  max-width: var(--page);
+  padding: 1rem 1rem;
   margin: 0 auto;
   background: linear-gradient(
     180deg,
@@ -887,7 +888,7 @@ main section:first-child {
 
 @media (max-width: 720px) {
   .site-nav {
-    padding: 0.9rem 0;
+    padding: 0.9rem 1rem;
   }
 
   .brand-name span:last-child {

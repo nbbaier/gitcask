@@ -251,6 +251,11 @@ code {
   transform: translateY(-1px);
 }
 
+.button:active,
+.command-button:active {
+  transform: translateY(0);
+}
+
 .button-primary {
   color: var(--bg-soft);
   background: var(--text);
@@ -594,6 +599,10 @@ main section {
   align-items: start;
 }
 
+.ops-copy h2 {
+  margin-top: 1rem;
+}
+
 .ops-copy p {
   max-width: 38ch;
   margin-top: 1.3rem;
@@ -713,6 +722,10 @@ main section {
   color: var(--muted);
 }
 
+.cta .hero-actions {
+  margin-top: 0;
+}
+
 .footer {
   display: flex;
   gap: 1rem;
@@ -761,7 +774,9 @@ main section {
   outline-offset: 3px;
 }
 
-.nav-links a:focus-visible {
+.brand:focus-visible,
+.nav-links a:focus-visible,
+.footer a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
   border-radius: 2px;

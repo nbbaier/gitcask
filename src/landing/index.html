@@ -15,6 +15,11 @@
       rel="stylesheet"
     >
     <link rel="stylesheet" href="./styles.css">
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>"
+    >
+    <meta name="theme-color" content="#080a0d">
   </head>
 
   <body>
@@ -375,6 +380,7 @@
 
     const copyButtons = document.querySelectorAll("[data-command]");
     for (const button of copyButtons) {
+      let resetTimer = 0;
       button.addEventListener("click", async () => {
         const { command } = button.dataset;
         if (!command) {
@@ -382,24 +388,25 @@
         }
 
         const label = button.querySelector("[data-copy-label]");
+        if (!(label instanceof HTMLElement)) {
+          return;
+        }
+
+        window.clearTimeout(resetTimer);
+        const original = label.dataset.original || label.textContent;
+        label.dataset.original = original;
+
         try {
           await navigator.clipboard.writeText(command);
-          if (label instanceof HTMLElement) {
-            const previous = label.textContent;
-            label.textContent = "Copied";
-            window.setTimeout(() => {
-              label.textContent = previous;
-            }, 1600);
-          }
+          label.textContent = "Copied";
         } catch {
-          if (label instanceof HTMLElement) {
-            const previous = label.textContent;
-            label.textContent = "Copy failed";
-            window.setTimeout(() => {
-              label.textContent = previous;
-            }, 1600);
-          }
+          label.textContent = "Copy failed";
         }
+
+        resetTimer = window.setTimeout(() => {
+          label.textContent = original;
+          delete label.dataset.original;
+        }, 1600);
       });
     }
 

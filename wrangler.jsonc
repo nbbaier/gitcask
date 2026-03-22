@@ -2,6 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "gitcask",
   "main": "src/index.ts",
+  "rules": [{ "type": "Text", "globs": ["**/*.html"] }],
   "compatibility_date": "2024-12-01",
   "observability": { "enabled": true },
   "vars": {

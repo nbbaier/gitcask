@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitCask — Automated GitHub Repository Backups</title>
+    <title>GitCask | GitHub Backups for Cloudflare</title>
     <meta
       name="description"
-      content="Automated, immutable backups for your GitHub repositories. Built on Cloudflare's edge."
+      content="GitCask is a self-hosted GitHub backup service that schedules mirrored clones, records metadata, and writes verified archives to Cloudflare R2."
     >
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap"
       rel="stylesheet"
     >
     <style>
@@ -24,566 +24,864 @@
     }
 
     :root {
-      --bg: oklch(0.985 0.002 250);
-      --fg: oklch(0.15 0.015 260);
-      --fg-muted: oklch(0.5 0.01 260);
-      --accent: oklch(0.6 0.14 175);
-      --accent-light: oklch(0.88 0.06 175);
-      --border: oklch(0.88 0.005 260);
-      --code-bg: oklch(0.13 0.015 260);
-      --serif: "Instrument Serif", Georgia, serif;
-      --sans: "DM Sans", system-ui, sans-serif;
-      --mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+      --bg: #080a0d;
+      --bg-soft: #11161d;
+      --panel: rgba(14, 19, 26, 0.78);
+      --panel-strong: rgba(11, 15, 20, 0.96);
+      --line: rgba(148, 163, 184, 0.18);
+      --line-strong: rgba(148, 163, 184, 0.32);
+      --text: #f2f5f7;
+      --muted: #9ca8b8;
+      --accent: #f58a2a;
+      --accent-soft: rgba(245, 138, 42, 0.16);
+      --accent-glow: rgba(245, 138, 42, 0.34);
+      --success: #73d0a2;
+      --sans: "Space Grotesk", sans-serif;
+      --mono: "IBM Plex Mono", monospace;
+      --page: min(1120px, calc(100vw - 2rem));
+      --hero-pad-top: clamp(6rem, 10vw, 8rem);
+      --hero-pad-bottom: clamp(3rem, 7vw, 5rem);
+      color-scheme: dark;
     }
 
     html {
-      font-size: clamp(15px, 1.1vw, 18px);
+      font-size: clamp(15px, 1vw, 18px);
       scroll-behavior: smooth;
       -webkit-font-smoothing: antialiased;
     }
 
     body {
+      min-height: 100vh;
       overflow-x: hidden;
       font-family: var(--sans);
-      line-height: 1.6;
-      color: var(--fg);
-      background: var(--bg);
+      color: var(--text);
+      background:
+        radial-gradient(
+          circle at top left,
+          rgba(245, 138, 42, 0.18),
+          transparent 24%
+        ),
+        radial-gradient(
+          circle at 80% 20%,
+          rgba(115, 208, 162, 0.1),
+          transparent 18%
+        ),
+        linear-gradient(180deg, #0b0f14 0%, #080a0d 38%, #090c10 100%);
     }
 
-    /* --- NAV --- */
-    nav {
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      content: "";
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 72px 72px;
+      opacity: 0.32;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent 88%);
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      content: "";
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.025) 0%,
+        transparent 28%,
+        transparent 72%,
+        rgba(255, 255, 255, 0.02) 100%
+      );
+    }
+
+    a {
+      color: inherit;
+    }
+
+    code {
+      font-family: var(--mono);
+    }
+
+    .shell {
+      width: var(--page);
+      margin: 0 auto;
+    }
+
+    .site-nav {
       position: sticky;
       top: 0;
       z-index: 10;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1.5rem clamp(1.5rem, 5vw, 4rem);
-      background: color-mix(in oklch, var(--bg) 85%, transparent);
-      border-bottom: 1px solid var(--border);
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
+      width: var(--page);
+      padding: 1rem 0;
+      margin: 0 auto;
+      background: linear-gradient(
+        180deg,
+        rgba(8, 10, 13, 0.88),
+        rgba(8, 10, 13, 0.38)
+      );
+      backdrop-filter: blur(14px);
     }
 
-    .logo {
-      font-family: var(--sans);
-      font-size: 1.35rem;
-      color: var(--fg);
-      letter-spacing: -0.02em;
-      text-decoration: none;
-    }
-
-    .logo span {
-      color: var(--accent);
-    }
-
-    nav a:not(.logo) {
-      font-size: 0.85rem;
+    .brand {
+      display: inline-flex;
+      gap: 0.75rem;
+      align-items: center;
+      font-size: 0.95rem;
       font-weight: 500;
-      color: var(--fg-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.03em;
       text-decoration: none;
-      transition: color 0.2s;
     }
 
-    nav a:not(.logo):hover {
-      color: var(--fg);
+    .brand-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--accent);
+      background: rgba(245, 138, 42, 0.08);
+      border: 1px solid rgba(245, 138, 42, 0.22);
+      border-radius: 999px;
+      box-shadow: 0 0 0 0.35rem rgba(245, 138, 42, 0.04);
+    }
+
+    .brand-name {
+      display: inline-flex;
+      gap: 0.15rem;
+      align-items: baseline;
+    }
+
+    .brand-name span:last-child {
+      color: var(--muted);
     }
 
     .nav-links {
       display: flex;
-      gap: 2rem;
+      gap: 1.25rem;
       align-items: center;
     }
 
-    /* --- HERO --- */
-    .hero {
-      max-width: 72rem;
-      padding: clamp(5rem, 14vh, 10rem) clamp(1.5rem, 5vw, 4rem)
-        clamp(4rem, 10vh, 8rem);
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .hero-label {
-      margin-bottom: 1.5rem;
+    .nav-links a {
       font-family: var(--mono);
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: var(--accent);
+      font-size: 0.78rem;
+      color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.14em;
-      opacity: 0;
-      animation: fadeUp 0.6s ease-out 0.1s forwards;
+      letter-spacing: 0.1em;
+      text-decoration: none;
+      transition: color 140ms ease;
     }
 
-    .hero h1 {
-      margin: 0 auto;
-      font-family: var(--serif);
-      font-size: clamp(3.2rem, 7.5vw, 6.5rem);
-      font-weight: 400;
-      line-height: 1.05;
-      color: var(--fg);
-      letter-spacing: -0.02em;
-      opacity: 0;
-      animation: fadeUp 0.6s ease-out 0.2s forwards;
+    .nav-links a:hover,
+    .nav-links a:focus-visible {
+      color: var(--text);
     }
 
-    .hero h1 em {
-      font-style: italic;
-      color: var(--accent);
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: center;
+      min-height: calc(100svh - 4.5rem);
+      padding-top: var(--hero-pad-top);
+      padding-bottom: var(--hero-pad-bottom);
     }
 
-    .hero-subtitle {
-      max-width: 50ch;
-      margin: clamp(1.5rem, 3vh, 2.5rem) auto 0;
-      font-size: clamp(1.05rem, 1.2vw, 1.25rem);
-      line-height: 1.7;
-      color: var(--fg-muted);
-      opacity: 0;
-      animation: fadeUp 0.6s ease-out 0.35s forwards;
+    .eyebrow,
+    .section-kicker {
+      display: inline-flex;
+      gap: 0.65rem;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
     }
 
-    .install-pill-wrapper {
-      margin-top: clamp(2rem, 4vh, 3rem);
-      opacity: 0;
-      animation: fadeUp 0.6s ease-out 0.45s forwards;
+    .eyebrow::before,
+    .section-kicker::before {
+      width: 2.5rem;
+      height: 1px;
+      content: "";
+      background: linear-gradient(90deg, var(--accent), transparent);
     }
 
-    .install-pill {
+    .hero-copy h1 {
+      max-width: 9ch;
+      margin-top: 1.25rem;
+      font-size: clamp(3.6rem, 9vw, 7rem);
+      line-height: 0.92;
+      letter-spacing: -0.06em;
+    }
+
+    .hero-copy p {
+      max-width: 38ch;
+      margin-top: 1.5rem;
+      font-size: clamp(1rem, 1.5vw, 1.15rem);
+      line-height: 1.75;
+      color: var(--muted);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.9rem;
+      align-items: center;
+      margin-top: 2rem;
+    }
+
+    .button,
+    .command-button {
       display: inline-flex;
       gap: 0.75rem;
       align-items: center;
-      padding: 0.7rem 0.85rem 0.7rem 1.25rem;
-      font-family: var(--mono);
-      font-size: 0.82rem;
-      color: var(--fg);
-      cursor: pointer;
-      background: color-mix(in oklch, var(--fg) 4%, transparent);
-      border: 1px solid var(--border);
-      border-radius: 100px;
+      justify-content: center;
+      min-height: 3rem;
+      padding: 0.8rem 1.15rem;
+      font-size: 0.92rem;
+      text-decoration: none;
+      border-radius: 999px;
       transition:
-        background 0.2s,
-        border-color 0.2s;
+        border-color 140ms ease,
+        transform 140ms ease,
+        background 140ms ease,
+        color 140ms ease;
     }
 
-    .install-pill:hover {
-      background: color-mix(in oklch, var(--fg) 7%, transparent);
-      border-color: color-mix(in oklch, var(--fg) 20%, transparent);
+    .button:hover,
+    .button:focus-visible,
+    .command-button:hover,
+    .command-button:focus-visible {
+      transform: translateY(-1px);
     }
 
-    .install-pill:active {
-      transform: scale(0.98);
+    .button-primary {
+      color: #13181f;
+      background: var(--text);
     }
 
-    .install-pill-icon {
-      display: flex;
+    .button-primary:hover,
+    .button-primary:focus-visible {
+      background: #ffffff;
+    }
+
+    .command-button {
+      font-family: var(--mono);
+      color: var(--text);
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+    }
+
+    .command-button:hover,
+    .command-button:focus-visible {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--line-strong);
+    }
+
+    .button-icon {
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 1.75rem;
-      height: 1.75rem;
-      color: var(--fg-muted);
-      background: color-mix(in oklch, var(--fg) 6%, transparent);
-      border-radius: 50%;
-      transition: color 0.2s;
-    }
-
-    .install-pill:hover .install-pill-icon {
-      color: var(--fg);
-    }
-
-    .install-pill-copied {
+      width: 1.4rem;
+      height: 1.4rem;
       color: var(--accent);
     }
 
     .hero-meta {
-      margin-top: 1rem;
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--fg-muted);
-      letter-spacing: 0.04em;
-      opacity: 0;
-      animation: fadeUp 0.6s ease-out 0.55s forwards;
-    }
-
-    /* --- DIVIDER --- */
-    .divider {
-      margin: 0 clamp(1.5rem, 5vw, 4rem);
-      border: none;
-      border-top: 1px dashed var(--border);
-    }
-
-    /* --- SECTIONS --- */
-    .section-label {
-      margin-bottom: 0.75rem;
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      font-weight: 600;
-      font-variant-caps: all-small-caps;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-    }
-
-    .section-title {
-      max-width: 28ch;
-      margin-bottom: clamp(2.5rem, 5vh, 4rem);
-      font-family: var(--serif);
-      font-size: clamp(1.8rem, 3vw, 2.8rem);
-      font-weight: 400;
-      line-height: 1.15;
-      letter-spacing: -0.01em;
-    }
-
-    /* --- HOW IT WORKS --- */
-    .how {
-      max-width: 72rem;
-      padding: clamp(5rem, 12vh, 9rem) clamp(1.5rem, 5vw, 4rem);
-      margin: 0 auto;
-    }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1px;
-      background: var(--border);
-      border: 1px solid var(--border);
-    }
-
-    .step {
-      position: relative;
-      padding: clamp(1.5rem, 2.5vw, 2.5rem);
-      background: var(--bg);
-    }
-
-    .step-num {
-      margin-bottom: 1.25rem;
-      font-family: var(--mono);
-      font-size: 3.5rem;
-      font-weight: 400;
-      line-height: 1;
-      color: oklch(0.92 0.005 260);
-    }
-
-    .step h3 {
-      margin-bottom: 0.6rem;
-      font-size: 1.05rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-    }
-
-    .step p {
-      font-size: 0.85rem;
-      line-height: 1.6;
-      color: var(--fg-muted);
-    }
-
-    /* --- FEATURES --- */
-    .features {
-      max-width: 72rem;
-      padding: clamp(5rem, 12vh, 9rem) clamp(1.5rem, 5vw, 4rem);
-      margin: 0 auto;
-    }
-
-    .feature-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: clamp(2rem, 4vw, 4rem);
-    }
-
-    .feature {
-      position: relative;
-      padding: clamp(2.5rem, 3.5vw, 3.5rem) 0;
-      border-top: 1px solid var(--border);
-      transition: transform 0.3s ease-out;
-    }
-
-    .feature:hover {
-      transform: translateY(-2px);
-    }
-
-    .feature::after {
-      position: absolute;
-      top: -1px;
-      left: 0;
-      width: 0;
-      height: 1px;
-      content: "";
-      background: var(--accent);
-      transition: width 0.45s ease-out;
-    }
-
-    .feature:hover::after {
-      width: 100%;
-    }
-
-    .feature-icon {
-      width: 1.75rem;
-      height: 1.75rem;
-      margin-bottom: 1.25rem;
-      color: var(--accent);
-      transition: transform 0.3s ease-out;
-    }
-
-    .feature:hover .feature-icon {
-      transform: scale(1.1);
-    }
-
-    .feature h3 {
-      margin-bottom: 0.6rem;
-      font-family: var(--sans);
-      font-size: clamp(1.2rem, 1.5vw, 1.45rem);
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-
-    .feature p {
-      max-width: 40ch;
-      font-size: 0.9rem;
-      line-height: 1.65;
-      color: var(--fg-muted);
-    }
-
-    /* --- STACK --- */
-    .stack {
-      max-width: 72rem;
-      padding: clamp(5rem, 12vh, 9rem) clamp(1.5rem, 5vw, 4rem);
-      margin: 0 auto;
-    }
-
-    .stack-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.5rem;
+      gap: 0.8rem 1.4rem;
       margin-top: 2rem;
+      list-style: none;
     }
 
-    .stack-tag {
-      display: inline-flex;
-      gap: 0.4rem;
-      align-items: center;
-      padding: 0.55rem 1rem;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--fg-muted);
-      background: color-mix(in oklch, var(--fg) 3%, transparent);
-      border: 1px solid var(--border);
-      border-radius: 1px;
-      transition:
-        transform 0.2s ease-out,
-        background 0.2s ease-out,
-        color 0.2s ease-out;
-    }
-
-    .stack-tag svg {
-      width: 1rem;
-      height: 1rem;
-      opacity: 0.6;
-      transition: opacity 0.2s ease-out;
-    }
-
-    .stack-tag:hover {
-      color: var(--fg);
-      background: var(--bg);
-      transform: translateY(-2px);
-    }
-
-    .stack-tag:hover svg {
-      opacity: 1;
-    }
-
-    /* --- CODE EXAMPLE --- */
-    .example {
-      max-width: 72rem;
-      padding: clamp(5rem, 12vh, 9rem) clamp(1.5rem, 5vw, 4rem);
-      margin: 0 auto;
-    }
-
-    .example-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.3fr;
-      gap: clamp(2rem, 4vw, 4rem);
-      align-items: start;
-      margin-top: clamp(2rem, 4vh, 3rem);
-    }
-
-    .example-text p {
-      max-width: 36ch;
-      font-size: 0.95rem;
-      line-height: 1.7;
-      color: var(--fg-muted);
-    }
-
-    .example-text p + p {
-      margin-top: 1rem;
-    }
-
-    .code-window {
-      overflow: hidden;
-      border-radius: 8px;
-    }
-
-    .code-window-header {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      padding: 0.75rem 1rem;
-      background: oklch(0.18 0.015 260);
-      border-bottom: 1px solid oklch(0.22 0.015 260);
-    }
-
-    .code-window-dot {
-      width: 10px;
-      height: 10px;
-      background: oklch(0.3 0.01 260);
-      border-radius: 50%;
-    }
-
-    .code-block {
-      padding: clamp(1.5rem, 2vw, 2rem);
-      overflow-x: auto;
+    .hero-meta li {
       font-family: var(--mono);
       font-size: 0.78rem;
-      line-height: 1.8;
-      color: oklch(0.88 0.01 250);
-      white-space: pre;
-      background: var(--code-bg);
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    .code-block .comment {
-      color: oklch(0.5 0.01 250);
-    }
-    .code-block .cmd {
-      color: oklch(0.72 0.12 175);
-    }
-    .code-block .flag {
-      color: oklch(0.7 0.08 250);
-    }
-    .code-block .string {
-      color: oklch(0.78 0.08 200);
+    .hero-visual {
+      position: relative;
+      min-height: 34rem;
     }
 
-    .cursor {
-      color: var(--accent);
-      animation: blink 0.8s step-end infinite;
+    .hero-visual::before {
+      position: absolute;
+      inset: 6% 6% auto auto;
+      width: clamp(10rem, 28vw, 17rem);
+      height: clamp(10rem, 28vw, 17rem);
+      content: "";
+      background: radial-gradient(circle, var(--accent-glow), transparent 72%);
+      opacity: 0.95;
+      filter: blur(12px);
     }
 
-    @keyframes blink {
-      50% {
-        opacity: 0;
-      }
+    .terminal {
+      position: relative;
+      min-height: 34rem;
+      padding: 1rem;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 10%),
+        linear-gradient(180deg, rgba(7, 10, 13, 0.92), rgba(7, 10, 13, 0.84));
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 1.4rem;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 30px 80px rgba(0, 0, 0, 0.45);
+      transform: perspective(1200px) rotateY(-10deg) rotateX(5deg);
+      transform-origin: center left;
     }
 
-    /* --- CTA --- */
-    .cta {
-      max-width: 72rem;
-      padding: clamp(5rem, 12vh, 9rem) clamp(1.5rem, 5vw, 4rem);
-      margin: 0 auto;
-      text-align: center;
+    .terminal::before {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background: linear-gradient(
+        180deg,
+        transparent,
+        rgba(255, 255, 255, 0.03) 46%,
+        transparent 52%
+      );
+      animation: sweep 9s linear infinite;
     }
 
-    .cta h2 {
-      margin: 0 auto 1.5rem;
-      font-family: var(--serif);
-      font-size: clamp(2.2rem, 4.5vw, 3.8rem);
-      font-weight: 400;
-      line-height: 1.1;
-      letter-spacing: -0.01em;
+    .terminal::after {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      content: "";
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0, transparent 32%),
+        radial-gradient(
+          circle at top right,
+          rgba(245, 138, 42, 0.15),
+          transparent 28%
+        );
     }
 
-    .cta p {
-      max-width: 44ch;
-      margin: 0 auto 2rem;
-      color: var(--fg-muted);
-    }
-
-    /* --- FOOTER --- */
-    footer {
+    .terminal-header,
+    .terminal-footer {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 2.5rem clamp(1.5rem, 5vw, 4rem);
-      font-size: 0.78rem;
-      color: var(--fg-muted);
-      border-top: 1px solid var(--border);
+      padding: 0.35rem 0.4rem 0.9rem;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    footer a {
-      color: var(--fg-muted);
+    .terminal-dots {
+      display: inline-flex;
+      gap: 0.45rem;
+      align-items: center;
+    }
+
+    .terminal-dots span {
+      display: block;
+      width: 0.6rem;
+      height: 0.6rem;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+    }
+
+    .terminal-body {
+      display: grid;
+      gap: 1rem;
+      height: calc(100% - 3rem);
+      padding: 0.4rem;
+    }
+
+    .terminal-pane {
+      position: relative;
+      padding: 1rem 1.1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      border-radius: 1rem;
+    }
+
+    .terminal-pane h2,
+    .terminal-pane h3 {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .run-log {
+      display: grid;
+      gap: 0.85rem;
+      margin-top: 1rem;
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      line-height: 1.65;
+    }
+
+    .run-log p {
+      display: grid;
+      grid-template-columns: 5.2rem 1fr;
+      gap: 0.75rem;
+      align-items: start;
+    }
+
+    .run-log span:first-child {
+      color: var(--muted);
+    }
+
+    .run-log strong {
+      font-weight: 500;
+      color: var(--success);
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .status-list {
+      display: grid;
+      gap: 0.7rem;
+      list-style: none;
+    }
+
+    .status-list li,
+    .artifact-list li {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .status-list strong,
+    .artifact-list strong {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .hero-copy p strong {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .artifact-list {
+      display: grid;
+      gap: 0.7rem;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .dot {
+      display: inline-flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .dot::before {
+      display: inline-block;
+      width: 0.48rem;
+      height: 0.48rem;
+      content: "";
+      background: var(--success);
+      border-radius: 999px;
+      box-shadow: 0 0 0 0.3rem rgba(115, 208, 162, 0.08);
+    }
+
+    main section {
+      padding: clamp(4rem, 9vw, 7rem) 0;
+      border-top: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .support-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(1.5rem, 2vw, 2.4rem);
+      margin-top: 2rem;
+    }
+
+    .support-item {
+      padding-top: 1.1rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.16);
+    }
+
+    .support-item h2 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+    }
+
+    .support-item p {
+      max-width: 28ch;
+      margin-top: 0.7rem;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+
+    .section-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: start;
+    }
+
+    .section-heading h2 {
+      max-width: 11ch;
+      margin-top: 1rem;
+      font-size: clamp(2rem, 4.8vw, 4rem);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+    }
+
+    .section-heading p {
+      max-width: 42ch;
+      margin-top: 2.8rem;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+
+    .flow-list {
+      display: grid;
+      gap: 1.25rem;
+      margin-top: 2.5rem;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 5rem minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+      padding: 1.25rem 0 1.35rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .flow-step:first-child {
+      border-top-color: rgba(245, 138, 42, 0.28);
+    }
+
+    .flow-step strong {
+      font-family: var(--mono);
+      font-size: 0.77rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .flow-step h3 {
+      font-size: 1.05rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+
+    .flow-step p {
+      margin-top: 0.45rem;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+
+    .ops-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: start;
+    }
+
+    .ops-copy p {
+      max-width: 38ch;
+      margin-top: 1.3rem;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+
+    .ops-points {
+      display: grid;
+      gap: 0.9rem;
+      padding-left: 0;
+      margin-top: 1.6rem;
+      list-style: none;
+    }
+
+    .ops-points li {
+      display: inline-flex;
+      gap: 0.75rem;
+      align-items: baseline;
+      color: var(--text);
+    }
+
+    .ops-points li::before {
+      width: 0.45rem;
+      height: 0.45rem;
+      content: "";
+      background: var(--accent);
+      border-radius: 999px;
+      box-shadow: 0 0 0 0.35rem rgba(245, 138, 42, 0.08);
+    }
+
+    .code-panel {
+      position: relative;
+      padding: 1.1rem;
+      overflow: hidden;
+      background: var(--panel-strong);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 1.25rem;
+    }
+
+    .code-panel::after {
+      position: absolute;
+      inset: auto 0 0;
+      height: 6rem;
+      pointer-events: none;
+      content: "";
+      background: linear-gradient(180deg, transparent, rgba(8, 10, 13, 0.88));
+    }
+
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 0.9rem;
+      font-family: var(--mono);
+      font-size: 0.73rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .code-block {
+      padding-bottom: 0.8rem;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 0.84rem;
+      line-height: 1.9;
+      color: #dce4ef;
+      white-space: pre;
+    }
+
+    .token-comment {
+      color: #748194;
+    }
+
+    .token-command {
+      color: #f0f6fb;
+    }
+
+    .token-flag {
+      color: #f58a2a;
+    }
+
+    .token-string {
+      color: #73d0a2;
+    }
+
+    .cta {
+      padding-bottom: 7rem;
+    }
+
+    .cta-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 2rem;
+      align-items: center;
+      padding: clamp(1.6rem, 4vw, 2.5rem);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 78%),
+        rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 1.4rem;
+    }
+
+    .cta h2 {
+      max-width: 12ch;
+      font-size: clamp(2rem, 5vw, 3.8rem);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+    }
+
+    .cta p {
+      max-width: 36ch;
+      margin-top: 1rem;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+
+    .footer {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 0 2.25rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .footer span,
+    .footer a {
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
       text-decoration: none;
     }
 
-    footer a:hover {
-      color: var(--fg);
+    .footer a:hover,
+    .footer a:focus-visible {
+      color: var(--text);
     }
 
-    .footer-note {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      letter-spacing: 0.02em;
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition:
+        opacity 500ms ease,
+        transform 500ms ease;
     }
 
-    /* --- ANIMATIONS --- */
-    @keyframes fadeUp {
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .hero-copy > *,
+    .hero-visual {
+      opacity: 0;
+      transform: translateY(24px);
+      animation: rise 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .hero-copy h1 {
+      animation-delay: 110ms;
+    }
+
+    .hero-copy p {
+      animation-delay: 190ms;
+    }
+
+    .hero-actions {
+      animation-delay: 280ms;
+    }
+
+    .hero-meta {
+      animation-delay: 360ms;
+    }
+
+    .hero-visual {
+      animation-delay: 170ms;
+    }
+
+    @keyframes rise {
       from {
         opacity: 0;
-        transform: translateY(16px);
+        transform: translateY(24px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
 
-    .reveal {
-      opacity: 0;
-      transform: translateY(20px);
-      transition:
-        opacity 0.5s ease-out,
-        transform 0.5s ease-out;
-    }
-
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* --- RESPONSIVE --- */
-    @media (max-width: 768px) {
-      .steps {
-        grid-template-columns: 1fr 1fr;
+    @keyframes sweep {
+      from {
+        transform: translateY(-100%);
       }
 
-      .feature-grid {
+      to {
+        transform: translateY(100%);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .section-heading,
+      .ops-grid,
+      .cta-shell {
         grid-template-columns: 1fr;
       }
 
-      .example-grid {
+      .hero {
+        min-height: auto;
+        padding-top: 4.5rem;
+      }
+
+      .hero-visual {
+        min-height: auto;
+      }
+
+      .terminal {
+        min-height: auto;
+        transform: none;
+      }
+
+      .support-grid {
         grid-template-columns: 1fr;
       }
 
-      .nav-links .hide-mobile {
+      .section-heading p,
+      .ops-copy p,
+      .cta p {
+        margin-top: 1.25rem;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .site-nav {
+        padding: 0.9rem 0;
+      }
+
+      .nav-links a:not(:last-child) {
         display: none;
       }
 
-      .install-pill {
-        font-size: 0.72rem;
+      .hero-copy h1,
+      .section-heading h2,
+      .cta h2 {
+        max-width: none;
       }
-    }
 
-    @media (max-width: 480px) {
-      .steps {
+      .run-log p,
+      .flow-step {
         grid-template-columns: 1fr;
       }
 
-      .install-pill {
-        padding: 0.6rem 0.7rem 0.6rem 1rem;
-        font-size: 0.68rem;
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-shell {
+        gap: 1.4rem;
+      }
+
+      .footer {
+        flex-direction: column;
+        align-items: flex-start;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
       *,
       *::before,
       *::after {
@@ -592,32 +890,27 @@
         animation-iteration-count: 1 !important;
       }
 
-      .hero-label,
-      .hero h1,
-      .hero-subtitle,
-      .install-pill-wrapper,
-      .hero-meta {
-        opacity: 1;
-        transform: none;
-      }
-
+      .hero-copy > *,
+      .hero-visual,
       .reveal {
         opacity: 1;
         transform: none;
-      }
-
-      .cursor {
         animation: none;
       }
     }
     </style>
   </head>
   <body>
-    <nav>
-      <a href="/" class="logo">Git<span>Cask</span></a>
+    <nav class="site-nav" aria-label="Primary">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">gc</span>
+        <span class="brand-name"
+          ><span>GitCask</span> <span>backup service</span></span
+        >
+      </a>
       <div class="nav-links">
-        <a href="#features" class="hide-mobile">Features</a>
-        <a href="#how" class="hide-mobile">How it works</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#automation">Automation</a>
         <a
           href="https://github.com/nbbaier/gitcask"
           target="_blank"
@@ -627,541 +920,396 @@
       </div>
     </nav>
 
-    <section class="hero">
-      <p class="hero-label">Automated repository backups</p>
-      <h1>Your code, <em>preserved</em></h1>
-      <p class="hero-subtitle">
-        GitCask creates immutable, verified backups of your GitHub repositories
-        on a schedule you control. Every branch, every tag, every ref — archived
-        and checksummed in Cloudflare R2.
-      </p>
-      <div class="install-pill-wrapper">
-        <button
-          type="button"
-          class="install-pill"
-          aria-label="Copy install command to clipboard"
-          data-command="git clone https://github.com/nbbaier/gitcask"
-        >
-          <code>git clone https://github.com/nbbaier/gitcask</code>
-          <span class="install-pill-icon" aria-hidden="true">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+    <main class="shell">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Self-hosted GitHub backup service</p>
+          <h1 id="hero-title">Mirror every repo you care about.</h1>
+          <p>
+            GitCask schedules <strong><code>git clone --mirror</code></strong>,
+            records repository metadata, and writes compressed, checksummed
+            archives to Cloudflare R2. It is built for teams that want
+            independent backups instead of trust-based recovery plans.
+          </p>
+          <div class="hero-actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/nbbaier/gitcask"
+              target="_blank"
+              rel="noopener"
             >
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-              <path
-                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-              />
-            </svg>
-          </span>
-        </button>
-      </div>
-      <p class="hero-meta">Open source · MIT licensed</p>
-    </section>
-
-    <hr class="divider">
-
-    <section class="how reveal" id="how">
-      <p class="section-label">How it works</p>
-      <h2 class="section-title">Four steps from repo to archive</h2>
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">01</div>
-          <h3>Register</h3>
-          <p>
-            Add repositories via the API or CLI. Set your preferred backup
-            interval — from every 5 minutes to once a day.
-          </p>
-        </div>
-        <div class="step">
-          <div class="step-num">02</div>
-          <h3>Clone</h3>
-          <p>
-            A dedicated container runs <code>git clone --mirror</code>,
-            capturing every branch, tag, and ref in your repository.
-          </p>
-        </div>
-        <div class="step">
-          <div class="step-num">03</div>
-          <h3>Verify</h3>
-          <p>
-            The archive is compressed and a SHA-256 checksum is computed to
-            ensure integrity before upload.
-          </p>
-        </div>
-        <div class="step">
-          <div class="step-num">04</div>
-          <h3>Store</h3>
-          <p>
-            Backups and metadata land in Cloudflare R2 — immutable, versioned,
-            and available for restore at any time.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <hr class="divider">
-
-    <section class="features reveal" id="features">
-      <p class="section-label">Features</p>
-      <h2 class="section-title">Everything you need, nothing you don't</h2>
-      <div class="feature-grid">
-        <div class="feature">
-          <svg
-            class="feature-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-          <h3>SHA-256 integrity</h3>
-          <p>
-            Every archive is checksummed at creation and verified on upload.
-            Know your backups are exactly what was cloned.
-          </p>
-        </div>
-        <div class="feature">
-          <svg
-            class="feature-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          <h3>Configurable schedules</h3>
-          <p>
-            Set per-repo intervals from 5 minutes to daily. Trigger manual
-            backups any time with a single API call.
-          </p>
-        </div>
-        <div class="feature">
-          <svg
-            class="feature-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-          </svg>
-          <h3>Full metadata capture</h3>
-          <p>
-            Repository description, topics, visibility, language, and branch
-            info are archived alongside the code.
-          </p>
-        </div>
-        <div class="feature">
-          <svg
-            class="feature-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="1 4 1 10 7 10" />
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-          </svg>
-          <h3>Automatic retries</h3>
-          <p>
-            Failed jobs retry with exponential backoff — up to 4 attempts. Stuck
-            jobs are detected and reported after 15 minutes.
-          </p>
-        </div>
-        <div class="feature">
-          <svg
-            class="feature-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path
-              d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-            />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
-          <h3>Retention policies</h3>
-          <p>
-            Time-based or count-based cleanup keeps your storage lean. Old
-            artifacts are pruned automatically.
-          </p>
-        </div>
-        <div class="feature">
-          <svg
-            class="feature-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M18 20V10" />
-            <path d="M12 20V4" />
-            <path d="M6 20v-6" />
-          </svg>
-          <h3>Job visibility</h3>
-          <p>
-            Track every backup through 6 stages — from cloning to metadata
-            upload. Full run history and error details at a glance.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <hr class="divider">
-
-    <section class="stack reveal">
-      <p class="section-label">Built on</p>
-      <h2 class="section-title">The Cloudflare stack, end to end</h2>
-      <div class="stack-row">
-        <span class="stack-tag">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M2 12h20" />
-            <path
-              d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-            />
-          </svg>
-          Workers
-        </span>
-        <span class="stack-tag">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
-            <rect x="2" y="2" width="20" height="20" rx="2" />
-            <path d="M7 12h10" />
-          </svg>
-          Containers
-        </span>
-        <span class="stack-tag">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
-            <ellipse cx="12" cy="5" rx="9" ry="3" />
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-          </svg>
-          D1 (SQLite)
-        </span>
-        <span class="stack-tag">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
-            <path
-              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
-            />
-          </svg>
-          R2 Storage
-        </span>
-        <span class="stack-tag">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-          </svg>
-          Queues
-        </span>
-        <span class="stack-tag">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-          </svg>
-          Hono
-        </span>
-        <span class="stack-tag">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            aria-hidden="true"
-          >
-            <ellipse cx="12" cy="5" rx="9" ry="3" />
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-          </svg>
-          Drizzle ORM
-        </span>
-      </div>
-    </section>
-
-    <hr class="divider">
-
-    <section class="example reveal">
-      <p class="section-label">Quick start</p>
-      <h2 class="section-title">Three commands to your first backup</h2>
-      <div class="example-grid">
-        <div class="example-text">
-          <p>
-            Register a repository, trigger a backup, and check its status. The
-            CLI wraps the full admin API for scripting and automation.
-          </p>
-          <p>
-            Backups run on schedule from there — or trigger them manually
-            whenever you need a fresh snapshot.
-          </p>
-        </div>
-        <div class="code-window">
-          <div class="code-window-header" aria-hidden="true">
-            <span class="code-window-dot"></span>
-            <span class="code-window-dot"></span>
-            <span class="code-window-dot"></span>
+              View source
+            </a>
+            <button
+              class="command-button"
+              type="button"
+              aria-label="Copy clone command"
+              data-command="git clone https://github.com/nbbaier/gitcask"
+            >
+              <span data-copy-label
+                >git clone https://github.com/nbbaier/gitcask</span
+              >
+              <span class="button-icon" aria-hidden="true">
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  />
+                </svg>
+              </span>
+            </button>
           </div>
-          <pre
-            class="code-block"
-          ><code><span class="comment"># Add a repository</span>
-<span class="cmd">gitcask</span> repos add <span class="flag">--owner</span> <span class="string">acme</span> <span class="flag">--name</span> <span class="string">api</span>
-
-<span class="comment"># Trigger an immediate backup</span>
-<span class="cmd">gitcask</span> repos trigger <span class="flag">--id</span> <span class="string">repo_01</span>
-
-<span class="comment"># Check recent runs</span>
-<span class="cmd">gitcask</span> runs list <span class="flag">--repo</span> <span class="string">repo_01</span></code></pre>
+          <ul class="hero-meta" aria-label="Technology stack">
+            <li>Workers</li>
+            <li>Containers</li>
+            <li>D1</li>
+            <li>R2</li>
+            <li>Queues</li>
+          </ul>
         </div>
-      </div>
-    </section>
 
-    <hr class="divider">
+        <div class="hero-visual" aria-hidden="true">
+          <div class="terminal" data-terminal>
+            <div class="terminal-header">
+              <span class="terminal-dots"
+                ><span></span><span></span><span></span></span
+              >
+              <span>run monitor</span>
+              <span>gitcask.prod</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-pane">
+                <h2>Latest backup</h2>
+                <div class="run-log">
+                  <p>
+                    <span>09:42:12</span>
+                    <span>queued repo <strong>acme/api</strong></span>
+                  </p>
+                  <p>
+                    <span>09:42:18</span>
+                    <span
+                      >container started
+                      <strong>git clone --mirror</strong></span
+                    >
+                  </p>
+                  <p>
+                    <span>09:42:51</span>
+                    <span
+                      >packed archive
+                      <strong>api-2026-03-21.tar.gz</strong></span
+                    >
+                  </p>
+                  <p>
+                    <span>09:42:53</span>
+                    <span>sha256 verified <strong>8f70…f2c1</strong></span>
+                  </p>
+                  <p>
+                    <span>09:42:55</span>
+                    <span
+                      >uploaded to <strong>r2://gitcask-backups</strong></span
+                    >
+                  </p>
+                </div>
+              </div>
+              <div class="status-grid">
+                <div class="terminal-pane">
+                  <h3>Pipeline</h3>
+                  <ul class="status-list">
+                    <li>
+                      <span class="dot">mirror clone</span> <strong>ok</strong>
+                    </li>
+                    <li>
+                      <span class="dot">metadata sync</span> <strong>ok</strong>
+                    </li>
+                    <li>
+                      <span class="dot">artifact upload</span>
+                      <strong>ok</strong>
+                    </li>
+                  </ul>
+                </div>
+                <div class="terminal-pane">
+                  <h3>Artifacts</h3>
+                  <ul class="artifact-list">
+                    <li><span>bundle</span> <strong>142 MB</strong></li>
+                    <li><span>refs</span> <strong>all</strong></li>
+                    <li><span>retry policy</span> <strong>enabled</strong></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="terminal-footer">
+              <span>immutable archives</span>
+              <span>verified before upload</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <section class="cta reveal">
-      <h2>Stop hoping GitHub never goes down</h2>
-      <p>
-        GitCask is open source and self-hosted. Deploy to your own Cloudflare
-        account in minutes.
-      </p>
-      <div class="install-pill-wrapper" style="opacity: 1; animation: none;">
-        <button
-          type="button"
-          class="install-pill"
-          aria-label="Copy install command to clipboard"
-          data-command="git clone https://github.com/nbbaier/gitcask"
-        >
-          <code>git clone https://github.com/nbbaier/gitcask</code>
-          <span class="install-pill-icon" aria-hidden="true">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+      <section class="reveal" aria-labelledby="proof-title">
+        <p class="section-kicker">Why it exists</p>
+        <div class="support-grid">
+          <article class="support-item">
+            <h2 id="proof-title">Own the backup path.</h2>
+            <p>
+              GitCask is for teams that want GitHub repository backups in their
+              own Cloudflare account, under their own retention rules.
+            </p>
+          </article>
+          <article class="support-item">
+            <h2>Mirror, don’t approximate.</h2>
+            <p>
+              Backups use mirrored Git clones so branches, tags, and refs are
+              captured from the source instead of reconstructed later.
+            </p>
+          </article>
+          <article class="support-item">
+            <h2>Keep the surface operational.</h2>
+            <p>
+              Repositories, schedules, manual triggers, run history, and job
+              status stay scriptable through the API and CLI.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="reveal" id="workflow" aria-labelledby="workflow-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Workflow</p>
+            <h2 id="workflow-title">Short path from repo to archive.</h2>
+          </div>
+          <p>
+            The system stays narrow on purpose. Register a repository, set an
+            interval, let the scheduler dispatch work, and inspect the resulting
+            artifacts when a run completes. No broad platform story. Just a
+            reliable backup loop.
+          </p>
+        </div>
+
+        <div class="flow-list">
+          <article class="flow-step">
+            <strong>01</strong>
+            <div>
+              <h3>Register the repository</h3>
+              <p>
+                Add the owner, name, and backup interval through the API or CLI.
+                GitCask validates repository access before the repo is admitted.
+              </p>
+            </div>
+          </article>
+          <article class="flow-step">
+            <strong>02</strong>
+            <div>
+              <h3>Dispatch the backup job</h3>
+              <p>
+                Scheduled work or manual triggers create jobs that move through
+                queueing, execution, and completion without requiring an admin
+                UI.
+              </p>
+            </div>
+          </article>
+          <article class="flow-step">
+            <strong>03</strong>
+            <div>
+              <h3>Clone, compress, verify</h3>
+              <p>
+                A dedicated container performs the mirrored clone, packages the
+                archive, and computes a checksum before anything is uploaded.
+              </p>
+            </div>
+          </article>
+          <article class="flow-step">
+            <strong>04</strong>
+            <div>
+              <h3>Store the artifact and metadata</h3>
+              <p>
+                Backups land in R2 with associated repository details and run
+                records so operators can audit what happened and when.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="reveal"
+        id="automation"
+        aria-labelledby="automation-title"
+      >
+        <div class="ops-grid">
+          <div class="ops-copy">
+            <p class="section-kicker">Automation surface</p>
+            <h2 id="automation-title">Operate it from scripts.</h2>
+            <p>
+              The product is intentionally closer to infrastructure than to a
+              dashboard. Most teams will interact with it through curl, cron,
+              CI, or a thin wrapper around the CLI.
+            </p>
+            <ul class="ops-points">
+              <li>Per-repository schedules with manual triggers</li>
+              <li>Authenticated admin API for repos, jobs, and runs</li>
+              <li>
+                Retention cleanup and retry behavior built into the worker
+              </li>
+            </ul>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span>CLI / API</span>
+              <span>Minimal control surface</span>
+            </div>
+            <pre
+              class="code-block"
+            ><code><span class="token-comment"># register a repository backup target</span>
+<span class="token-command">gitcask</span> repos add <span class="token-string">acme/api</span> <span class="token-flag">--interval</span> <span class="token-string">60</span>
+
+<span class="token-comment"># trigger an immediate run</span>
+<span class="token-command">gitcask</span> repos trigger <span class="token-string">repo_01</span>
+
+<span class="token-comment"># inspect the latest run and attached artifacts</span>
+<span class="token-command">curl</span> <span class="token-flag">-H</span> <span class="token-string">"Authorization: Bearer $ADMIN_TOKEN"</span> \
+  <span class="token-string">https://gitcask.example.workers.dev/runs/run_01</span></code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta reveal" aria-labelledby="cta-title">
+        <div class="cta-shell">
+          <div>
+            <p class="section-kicker">Start here</p>
+            <h2 id="cta-title">Replace hope with a backup job.</h2>
+            <p>
+              GitCask is open source and designed to deploy into a Cloudflare
+              account you control. Clone it, wire your secrets, and run the
+              first backup on your schedule.
+            </p>
+          </div>
+          <div class="hero-actions">
+            <a
+              class="button button-primary"
+              href="https://github.com/nbbaier/gitcask"
+              target="_blank"
+              rel="noopener"
             >
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-              <path
-                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-              />
-            </svg>
-          </span>
-        </button>
-      </div>
-    </section>
+              Open repository
+            </a>
+            <button
+              class="command-button"
+              type="button"
+              aria-label="Copy clone command"
+              data-command="git clone https://github.com/nbbaier/gitcask"
+            >
+              <span data-copy-label>Copy clone command</span>
+              <span class="button-icon" aria-hidden="true">
+                <svg
+                  aria-hidden="true"
+                  focusable="false"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
 
-    <footer>
+    <footer class="footer shell">
       <span>&copy; 2026 GitCask</span>
-      <span class="footer-note">Built on Cloudflare</span>
+      <span>Open source repository backup tooling</span>
       <a
         href="https://github.com/nbbaier/gitcask"
         target="_blank"
         rel="noopener"
-        >Source</a
+        >GitHub</a
       >
     </footer>
 
     <script>
     "use strict";
-    const prefersReduced = matchMedia(
+
+    const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    // --- Copy to clipboard ---
-    const installPills = document.querySelectorAll(".install-pill");
-    for (const pill of installPills) {
-      pill.addEventListener("click", async () => {
-        const command = pill.dataset.command;
+    const copyButtons = document.querySelectorAll("[data-command]");
+    for (const button of copyButtons) {
+      button.addEventListener("click", async () => {
+        const { command } = button.dataset;
         if (!command) {
           return;
         }
 
         try {
           await navigator.clipboard.writeText(command);
-          const icon = pill.querySelector(".install-pill-icon");
-          if (icon) {
-            const originalHtml = icon.innerHTML;
-            icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>`;
-            icon.classList.add("install-pill-copied");
-            setTimeout(() => {
-              icon.innerHTML = originalHtml;
-              icon.classList.remove("install-pill-copied");
-            }, 1500);
+          const label = button.querySelector("[data-copy-label]");
+          if (label instanceof HTMLElement) {
+            const previous = label.textContent;
+            label.textContent = "Copied";
+            window.setTimeout(() => {
+              label.textContent = previous;
+            }, 1600);
           }
         } catch {
-          // Clipboard API not available — fail silently
+          // Ignore clipboard failures.
         }
       });
     }
 
-    // --- Scroll reveals ---
-    const reveals = document.querySelectorAll(".reveal");
-    if (prefersReduced) {
-      for (const el of reveals) {
-        el.classList.add("visible");
+    const revealItems = document.querySelectorAll(".reveal");
+    if (prefersReducedMotion) {
+      for (const item of revealItems) {
+        item.classList.add("is-visible");
       }
     } else {
       const observer = new IntersectionObserver(
         (entries) => {
           for (const entry of entries) {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("visible");
-              observer.unobserve(entry.target);
+            if (!entry.isIntersecting) {
+              continue;
             }
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
           }
         },
-        { threshold: 0.15 }
+        { threshold: 0.18 }
       );
-      for (const el of reveals) {
-        observer.observe(el);
+
+      for (const item of revealItems) {
+        observer.observe(item);
       }
     }
 
-    // --- Typewriter ---
-    const codeEl = document.querySelector(".code-block code");
-    if (codeEl) {
-      const sourceHtml = codeEl.innerHTML;
-
-      if (prefersReduced) {
-        codeEl.innerHTML = sourceHtml;
-      } else {
-        codeEl.innerHTML = "";
-
-        const typeObserver = new IntersectionObserver(
-          (entries) => {
-            for (const entry of entries) {
-              if (entry.isIntersecting) {
-                typeObserver.unobserve(entry.target);
-                typewrite(codeEl, sourceHtml);
-              }
-            }
-          },
-          { threshold: 0.3 }
-        );
-        typeObserver.observe(codeEl.closest(".code-block"));
-      }
-    }
-
-    function typewrite(el, html) {
-      let i = 0;
-      let output = "";
-      el.innerHTML = '<span class="cursor">\u258C</span>';
-
-      function tick() {
-        if (i >= html.length) {
-          const cursorEl = el.querySelector(".cursor");
-          if (cursorEl) {
-            setTimeout(() => {
-              cursorEl.style.transition = "opacity 0.4s";
-              cursorEl.style.opacity = "0";
-            }, 800);
-          }
-          return;
-        }
-
-        // Skip over HTML tags instantly
-        if (html[i] === "<") {
-          const close = html.indexOf(">", i);
-          output += html.substring(i, close + 1);
-          i = close + 1;
-          el.innerHTML = output + '<span class="cursor">\u258C</span>';
-          requestAnimationFrame(tick);
-          return;
-        }
-
-        // Handle newlines — pause longer between command blocks
-        if (html[i] === "\n") {
-          output += "\n";
-          i++;
-          // Double newline = gap between commands
-          if (i < html.length && html[i] === "\n") {
-            output += "\n";
-            i++;
-            el.innerHTML = output + '<span class="cursor">\u258C</span>';
-            setTimeout(tick, 420);
-            return;
-          }
-          el.innerHTML = output + '<span class="cursor">\u258C</span>';
-          setTimeout(tick, 60);
-          return;
-        }
-
-        output += html[i];
-        i++;
-        el.innerHTML = output + '<span class="cursor">\u258C</span>';
-        const ch = html[i - 1];
-        const delay = ch === " " ? 18 : 28 + Math.random() * 22;
-        setTimeout(tick, delay);
-      }
-
-      setTimeout(tick, 350);
+    const terminal = document.querySelector("[data-terminal]");
+    if (terminal instanceof HTMLElement && !prefersReducedMotion) {
+      window.addEventListener("pointermove", (event) => {
+        const x = (event.clientX / window.innerWidth - 0.5) * 6;
+        const y = (event.clientY / window.innerHeight - 0.5) * -4;
+        terminal.style.transform = `perspective(1200px) rotateY(${x - 10}deg) rotateX(${y + 5}deg)`;
+      });
     }
     </script>
   </body>

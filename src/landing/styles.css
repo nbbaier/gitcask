@@ -26,13 +26,14 @@
   --code-text: #dce4ef;
   --token-comment: #748194;
   --white: #ffffff;
+  --text-caption: 0.8rem;
   --hero-pad-top: clamp(6rem, 10vw, 8rem);
   --hero-pad-bottom: clamp(3rem, 7vw, 5rem);
   color-scheme: dark;
 }
 
 html {
-  font-size: clamp(15px, 1vw, 18px);
+  font-size: clamp(0.9375rem, 1vw, 1.125rem);
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
 }
@@ -132,7 +133,7 @@ code {
   width: 2rem;
   height: 2rem;
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--text-caption);
   color: var(--accent);
   background: rgba(245, 138, 42, 0.08);
   border: 1px solid rgba(245, 138, 42, 0.22);
@@ -158,7 +159,7 @@ code {
 
 .nav-links a {
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--text-caption);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -187,7 +188,7 @@ code {
   gap: 0.65rem;
   align-items: center;
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -293,7 +294,7 @@ code {
 
 .hero-meta li {
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--text-caption);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -368,7 +369,7 @@ code {
   justify-content: space-between;
   padding: 0.35rem 0.4rem 0.9rem;
   font-family: var(--mono);
-  font-size: 0.73rem;
+  font-size: var(--text-caption);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -403,10 +404,9 @@ code {
   border-radius: 1rem;
 }
 
-.terminal-pane h2,
-.terminal-pane h3 {
+.terminal-label {
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
   font-weight: 500;
   color: var(--muted);
   text-transform: uppercase;
@@ -458,7 +458,7 @@ code {
   align-items: center;
   justify-content: space-between;
   font-family: var(--mono);
-  font-size: 0.76rem;
+  font-size: var(--text-caption);
   color: var(--muted);
 }
 
@@ -569,7 +569,7 @@ main section {
 
 .flow-step strong {
   font-family: var(--mono);
-  font-size: 0.77rem;
+  font-size: var(--text-caption);
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -650,7 +650,7 @@ main section {
   justify-content: space-between;
   padding-bottom: 0.9rem;
   font-family: var(--mono);
-  font-size: 0.73rem;
+  font-size: var(--text-caption);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -725,7 +725,7 @@ main section {
 .footer span,
 .footer a {
   font-family: var(--mono);
-  font-size: 0.74rem;
+  font-size: var(--text-caption);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -871,8 +871,16 @@ main section {
     padding: 0.9rem 0;
   }
 
-  .nav-links a:not(:last-child) {
+  .brand-name span:last-child {
     display: none;
+  }
+
+  .nav-links {
+    gap: 0.75rem;
+  }
+
+  .nav-links a {
+    padding: 0.35rem 0.15rem;
   }
 
   .hero-copy h1,
@@ -892,6 +900,22 @@ main section {
 
   .cta-shell {
     gap: 1.4rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .command-button {
+    overflow: hidden;
+    font-size: 0.8rem;
+  }
+
+  .command-button [data-copy-label] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .footer {

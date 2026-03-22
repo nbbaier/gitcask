@@ -16,6 +16,7 @@
     >
     <link rel="stylesheet" href="./styles.css">
   </head>
+
   <body>
     <a href="#main-content" class="skip-link">Skip to content</a>
     <nav class="site-nav" aria-label="Primary">
@@ -107,7 +108,7 @@
             </div>
             <div class="terminal-body">
               <div class="terminal-pane">
-                <h2>Latest backup</h2>
+                <div class="terminal-label">Latest backup</div>
                 <div class="run-log">
                   <p>
                     <span>09:42:12</span>
@@ -141,7 +142,7 @@
               </div>
               <div class="status-grid">
                 <div class="terminal-pane">
-                  <h3>Pipeline</h3>
+                  <div class="terminal-label">Pipeline</div>
                   <ul class="status-list">
                     <li>
                       <span class="dot">mirror clone</span> <strong>ok</strong>
@@ -156,7 +157,7 @@
                   </ul>
                 </div>
                 <div class="terminal-pane">
-                  <h3>Artifacts</h3>
+                  <div class="terminal-label">Artifacts</div>
                   <ul class="artifact-list">
                     <li><span>bundle</span> <strong>142 MB</strong></li>
                     <li><span>refs</span> <strong>all</strong></li>
@@ -173,11 +174,11 @@
         </div>
       </section>
 
-      <section class="reveal" aria-labelledby="why-title">
-        <p id="why-title" class="section-kicker">Why it exists</p>
+      <section class="reveal" aria-labelledby="why-heading">
+        <p class="section-kicker">Why it exists</p>
         <div class="support-grid">
           <article class="support-item">
-            <h2 id="proof-title">Own the backup path.</h2>
+            <h2 id="why-heading">Own the backup path.</h2>
             <p>
               GitCask is for teams that want GitHub repository backups in their
               own Cloudflare account, under their own retention rules.
@@ -380,9 +381,9 @@
           return;
         }
 
+        const label = button.querySelector("[data-copy-label]");
         try {
           await navigator.clipboard.writeText(command);
-          const label = button.querySelector("[data-copy-label]");
           if (label instanceof HTMLElement) {
             const previous = label.textContent;
             label.textContent = "Copied";
@@ -391,7 +392,13 @@
             }, 1600);
           }
         } catch {
-          // Ignore clipboard failures.
+          if (label instanceof HTMLElement) {
+            const previous = label.textContent;
+            label.textContent = "Copy failed";
+            window.setTimeout(() => {
+              label.textContent = previous;
+            }, 1600);
+          }
         }
       });
     }

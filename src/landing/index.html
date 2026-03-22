@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>gitcask — automated GitHub backups</title>
+    <meta
+      name="description"
+      content="Automated GitHub repository backup service powered by Cloudflare Workers, D1, R2, and Queues. Set it and forget it."
+    >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    >
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+
+  <body>
+    <!-- ── Navbar ──────────────────────────────────────────── -->
+    <nav class="navbar">
+      <div class="container">
+        <a class="navbar-logo" href="/">gitcask</a>
+        <ul class="navbar-links">
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li>
+            <a
+              href="https://github.com/nbbaier/gitcask"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+          </li>
+          <li><a class="btn btn-outline" href="#install">Get Started</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- ── Hero ────────────────────────────────────────────── -->
+    <section class="hero">
+      <div class="container">
+        <h1 class="hero-headline">your repos,<br>always safe.</h1>
+        <div class="hero-right">
+          <p class="hero-tagline">
+            Automated GitHub repository backups powered by Cloudflare Workers.
+            Schedule it once, sleep soundly forever.
+          </p>
+          <div class="install-widget">
+            <span class="prompt">$</span>
+            <code>git clone https://github.com/nbbaier/gitcask</code>
+            <button
+              class="copy-btn"
+              type="button"
+              aria-label="Copy install command"
+              onclick="navigator.clipboard.writeText('git clone https://github.com/nbbaier/gitcask')"
+            >
+              &#x2398;
+            </button>
+          </div>
+          <div class="hero-ctas">
+            <a
+              class="btn btn-primary"
+              href="https://github.com/nbbaier/gitcask"
+              target="_blank"
+              rel="noopener"
+              >View on GitHub</a
+            >
+            <a class="btn btn-outline" href="#how-it-works"
+              >Learn more &rarr;</a
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── The Problem ─────────────────────────────────────── -->
+    <section class="section section--warm">
+      <div class="container">
+        <p class="section-label">The Problem</p>
+        <h2 class="section-headline">github is not a backup strategy.</h2>
+        <div class="two-col">
+          <p>
+            Accidental force-pushes, compromised accounts, repo deletions, API
+            outages &mdash; your code lives in one place and you don't control
+            the infrastructure. If GitHub goes down or a repo disappears, what's
+            your recovery plan?
+          </p>
+          <p>
+            Most backup solutions are either manual scripts that rot, paid
+            services with opaque pricing, or enterprise tools that are overkill
+            for small teams. You need something that runs itself, costs almost
+            nothing, and stores backups on infrastructure you own.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── How It Works ────────────────────────────────────── -->
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <p class="section-label">How It Works</p>
+        <h2 class="section-headline">
+          cron triggers, worker clones, R2 stores.
+        </h2>
+        <div class="flow">
+          <div class="flow-step">
+            <strong>Cron Trigger</strong>
+            <span>Scheduled intervals</span>
+          </div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-step">
+            <strong>Worker</strong>
+            <span>Enqueues backup job</span>
+          </div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-step">
+            <strong>Container</strong>
+            <span>git clone --mirror</span>
+          </div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-step">
+            <strong>R2 Bucket</strong>
+            <span>Compressed archive</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── In Practice ──────────────────────────────────────── -->
+    <section class="section section--warm">
+      <div class="container">
+        <p class="section-label">In Practice</p>
+        <h2 class="section-headline">
+          set up once, never think about it again.
+        </h2>
+
+        <div class="use-case">
+          <div class="use-case-prose">
+            <h3>register a repo</h3>
+            <p>
+              Point gitcask at any GitHub repository. Set your backup interval
+              in minutes. The scheduler handles the rest &mdash; no cron jobs to
+              maintain, no scripts to babysit.
+            </p>
+          </div>
+          <pre
+            class="code-block"
+          ><span class="comment"># add a repo with hourly backups</span>
+<span class="prompt">$ </span>curl -X POST https://your-worker.dev/repos \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"owner":"org","name":"app","interval_minutes":60}'</pre>
+        </div>
+
+        <div class="use-case">
+          <div class="use-case-prose">
+            <h3>trigger on demand</h3>
+            <p>
+              About to do something risky? Trigger an immediate backup before
+              that force-push, migration, or branch cleanup. One curl and you've
+              got a snapshot.
+            </p>
+          </div>
+          <pre
+            class="code-block"
+          ><span class="comment"># trigger an immediate backup</span>
+<span class="prompt">$ </span>curl -X POST https://your-worker.dev/repos/&lt;id&gt;/trigger \
+  -H "Authorization: Bearer $TOKEN"
+
+<span class="comment"># check the run status</span>
+<span class="prompt">$ </span>curl https://your-worker.dev/repos/&lt;id&gt;/runs \
+  -H "Authorization: Bearer $TOKEN"</pre>
+        </div>
+
+        <div class="use-case">
+          <div class="use-case-prose">
+            <h3>retention policies</h3>
+            <p>
+              Configure how many backups to keep. Old archives are automatically
+              cleaned up on every scheduler tick &mdash; your R2 bill stays
+              predictable without manual pruning.
+            </p>
+          </div>
+          <pre
+            class="code-block"
+          ><span class="comment"># keep the last 30 backups per repo</span>
+<span class="prompt">$ </span>curl -X PATCH https://your-worker.dev/repos/&lt;id&gt; \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"retention_count": 30}'</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Comparison ──────────────────────────────────────── -->
+    <section class="section">
+      <div class="container">
+        <p class="section-label">Why Gitcask</p>
+        <h2 class="section-headline">no agents, no dashboards, no invoices.</h2>
+        <ul class="vs-list">
+          <li>
+            <strong>vs. manual scripts</strong>
+            &mdash; No cron jobs to maintain on a VPS that may itself go down.
+            Gitcask is serverless and self-healing.
+          </li>
+          <li>
+            <strong>vs. GitHub Actions</strong>
+            &mdash; Actions can't run if GitHub is the thing that's broken. Your
+            backups should be independent of what they're backing up.
+          </li>
+          <li>
+            <strong>vs. paid backup SaaS</strong>
+            &mdash; No per-repo pricing, no seat licenses. Deploy to your own
+            Cloudflare account and pay only for storage.
+          </li>
+          <li>
+            <strong>vs. enterprise tools</strong>
+            &mdash; No SAML setup, no sales calls, no 50-page admin console. One
+            Worker, one config, done.
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── Stack ───────────────────────────────────────────── -->
+    <section class="section section--warm">
+      <div class="container">
+        <p class="section-label">The Stack</p>
+        <h2 class="section-headline">cloudflare all the way down.</h2>
+        <div class="two-col">
+          <p>
+            <strong>Workers</strong>
+            for the API and scheduler.
+            <strong>D1</strong>
+            for repo metadata and run history.
+            <strong>R2</strong>
+            for storing compressed mirror archives.
+            <strong>Queues</strong>
+            for reliable job delivery.
+            <strong>Containers</strong>
+            for running git clone.
+          </p>
+          <p>
+            Everything deploys with a single <code>wrangler deploy</code>. No
+            Docker compose files, no Kubernetes manifests, no infrastructure to
+            monitor. The entire system fits in one repo.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CTA / Install ───────────────────────────────────── -->
+    <section class="section section--dark cta-section" id="install">
+      <div class="container">
+        <h2 class="section-headline">start backing up today.</h2>
+        <div class="install-widget">
+          <span class="prompt">$</span>
+          <code
+            >git clone https://github.com/nbbaier/gitcask && cd gitcask && bun
+            install</code
+          >
+          <button
+            class="copy-btn"
+            type="button"
+            aria-label="Copy install command"
+            onclick="navigator.clipboard.writeText('git clone https://github.com/nbbaier/gitcask && cd gitcask && bun install')"
+          >
+            &#x2398;
+          </button>
+        </div>
+        <a
+          class="btn btn-primary"
+          href="https://github.com/nbbaier/gitcask"
+          target="_blank"
+          rel="noopener"
+          >View on GitHub</a
+        >
+      </div>
+    </section>
+
+    <!-- ── Footer ──────────────────────────────────────────── -->
+    <footer class="footer">
+      <div class="container">
+        <span>gitcask</span>
+        <ul class="footer-links">
+          <li>
+            <a
+              href="https://github.com/nbbaier/gitcask"
+              target="_blank"
+              rel="noopener"
+              >GitHub</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/nbbaier/gitcask#setup"
+              target="_blank"
+              rel="noopener"
+              >Docs</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/nbbaier/gitcask/issues"
+              target="_blank"
+              rel="noopener"
+              >Issues</a
+            >
+          </li>
+        </ul>
+      </div>
+    </footer>
+  </body>
+</html>

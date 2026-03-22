@@ -332,6 +332,7 @@
       position: relative;
       min-height: 34rem;
       padding: 1rem;
+      contain: layout paint;
       overflow: hidden;
       background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 10%),
@@ -640,6 +641,7 @@
     .code-panel {
       position: relative;
       padding: 1.1rem;
+      contain: paint;
       overflow: hidden;
       background: var(--panel-strong);
       border: 1px solid rgba(148, 163, 184, 0.14);
@@ -838,6 +840,10 @@
       to {
         transform: translateY(100%);
       }
+    }
+
+    .terminal.sweep-paused::before {
+      animation-play-state: paused;
     }
 
     @media (max-width: 980px) {
@@ -1352,6 +1358,21 @@
           rafId = null;
         });
       });
+    }
+
+    if (terminal instanceof HTMLElement && !prefersReducedMotion) {
+      const sweepObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            entry.target.classList.toggle(
+              "sweep-paused",
+              !entry.isIntersecting
+            );
+          }
+        },
+        { threshold: 0 }
+      );
+      sweepObserver.observe(terminal);
     }
     </script>
   </body>

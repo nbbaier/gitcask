@@ -72,7 +72,7 @@ curl http://localhost:8787/health
 # Add a repo to back up
 curl -X POST http://localhost:8787/repos \
   -H "Authorization: Bearer some-secret-token" \
-  -H "Content-Type: application/
+  -H "Content-Type: application/json" \
   -d '{"owner":"nbbaier","name":"gitcask","interval_minutes":60}'
 
 # List repos
@@ -179,4 +179,3 @@ bunx wrangler deploy --env production
 - `WORKER_URL` updated in `env.production` vars
 - D1 migrations applied remotely
 - Worker deployed with `bunx wrangler deploy --env production`
-

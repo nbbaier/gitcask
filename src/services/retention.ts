@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
@@ -6,49 +6,46 @@ import type { Env } from "../types.ts";
 
 const MIN_TIME_DAYS = 7;
 const MAX_COUNT = 30;
+const RETENTION_REPO_BATCH_SIZE = 25;
+const RETENTION_ARTIFACT_BATCH_SIZE = 100;
 const RUN_METADATA_TTL_DAYS = 180;
+const RUN_METADATA_BATCH_SIZE = 100;
+
+async function deleteArtifact(env: Env, objectKey: string): Promise<void> {
+  await env.BUCKET.delete(objectKey);
+  await env.BUCKET.delete(objectKey.replace(".tar.gz", "_metadata.json"));
+}
 
 export async function runRetentionCleanup(env: Env): Promise<void> {
   const db = drizzle(env.DB);
+  const minTimeThreshold = new Date(
+    Date.now() - MIN_TIME_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
 
-  // Get all repos
-  const allRepos = await db.select().from(schema.repos);
+  // Bound work per cron tick so retention stays predictable as data grows.
+  const reposWithExpiredArtifacts = await db
+    .select({ repo_id: schema.artifacts.repo_id })
+    .from(schema.artifacts)
+    .where(lt(schema.artifacts.created_at, minTimeThreshold))
+    .groupBy(schema.artifacts.repo_id)
+    .limit(RETENTION_REPO_BATCH_SIZE);
 
-  for (const repo of allRepos) {
-    // Get all artifacts for this repo, ordered by creation date desc
-    const allArtifacts = await db
+  for (const { repo_id } of reposWithExpiredArtifacts) {
+    const artifactsToDelete = await db
       .select()
       .from(schema.artifacts)
-      .where(eq(schema.artifacts.repo_id, repo.id))
-      .orderBy(desc(schema.artifacts.created_at));
+      .where(
+        and(
+          eq(schema.artifacts.repo_id, repo_id),
+          lt(schema.artifacts.created_at, minTimeThreshold)
+        )
+      )
+      .orderBy(desc(schema.artifacts.created_at))
+      .offset(MAX_COUNT)
+      .limit(RETENTION_ARTIFACT_BATCH_SIZE);
 
-    const minTimeThreshold = new Date(
-      Date.now() - MIN_TIME_DAYS * 24 * 60 * 60 * 1000
-    ).toISOString();
-
-    // Keep all within min time window, then cap at MAX_COUNT beyond that
-    const toKeep = new Set<string>();
-    const toDelete: typeof allArtifacts = [];
-
-    for (const artifact of allArtifacts) {
-      if (artifact.created_at >= minTimeThreshold) {
-        toKeep.add(artifact.id);
-      } else if (toKeep.size < MAX_COUNT) {
-        toKeep.add(artifact.id);
-      } else {
-        toDelete.push(artifact);
-      }
-    }
-
-    // Delete old artifacts from R2 and D1
-    for (const artifact of toDelete) {
-      await env.BUCKET.delete(artifact.object_key);
-      // Also delete the metadata sidecar
-      const metadataKey = artifact.object_key.replace(
-        ".tar.gz",
-        "_metadata.json"
-      );
-      await env.BUCKET.delete(metadataKey);
+    for (const artifact of artifactsToDelete) {
+      await deleteArtifact(env, artifact.object_key);
       await db
         .delete(schema.artifacts)
         .where(eq(schema.artifacts.id, artifact.id));
@@ -63,7 +60,9 @@ export async function runRetentionCleanup(env: Env): Promise<void> {
   const staleRuns = await db
     .select({ id: schema.runs.id })
     .from(schema.runs)
-    .where(lt(schema.runs.created_at, ttlThreshold));
+    .where(lt(schema.runs.created_at, ttlThreshold))
+    .orderBy(asc(schema.runs.created_at))
+    .limit(RUN_METADATA_BATCH_SIZE);
 
   if (staleRuns.length > 0) {
     const staleRunIds = staleRuns.map((r) => r.id);
@@ -75,12 +74,7 @@ export async function runRetentionCleanup(env: Env): Promise<void> {
       .where(inArray(schema.artifacts.run_id, staleRunIds));
 
     for (const artifact of orphanedArtifacts) {
-      await env.BUCKET.delete(artifact.object_key);
-      const metadataKey = artifact.object_key.replace(
-        ".tar.gz",
-        "_metadata.json"
-      );
-      await env.BUCKET.delete(metadataKey);
+      await deleteArtifact(env, artifact.object_key);
     }
 
     if (orphanedArtifacts.length > 0) {

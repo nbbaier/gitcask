@@ -3,8 +3,9 @@ import {
   env,
   waitOnExecutionContext,
 } from "cloudflare:test";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index.ts";
+import { runRetentionCleanup } from "../src/services/retention.ts";
 
 // Helper to apply migrations
 async function applyMigrations(db: D1Database) {
@@ -25,6 +26,8 @@ async function applyMigrations(db: D1Database) {
       trigger_source text NOT NULL,
       idempotency_key text NOT NULL,
       status text NOT NULL,
+      stage text,
+      stage_updated_at text,
       attempt integer DEFAULT 1 NOT NULL,
       deadline_at text,
       created_at text NOT NULL,
@@ -80,6 +83,10 @@ function makeRequest(
 }
 
 describe("Gitcask API", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(async () => {
     await applyMigrations(env.DB);
     // Clean tables between tests
@@ -223,6 +230,40 @@ describe("Gitcask API", () => {
 
       expect(res.status).toBe(404);
     });
+
+    it("enqueues a manual job instead of dispatching it directly", async () => {
+      const repoId = crypto.randomUUID();
+      const ts = new Date().toISOString();
+
+      await env.DB.prepare(
+        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(repoId, "test-owner", "test-repo", 60, 1, ts, ts, ts)
+        .run();
+
+      const req = makeRequest(`/repos/${repoId}/trigger`, {
+        method: "POST",
+      });
+      const ctx = createExecutionContext();
+      const res = await worker.fetch(req, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(res.status).toBe(202);
+      const body = (await res.json()) as { job_id: string; status: string };
+      expect(body.status).toBe("queued");
+
+      const job = await env.DB.prepare(
+        "SELECT status, trigger_source, attempt FROM jobs WHERE id = ?"
+      )
+        .bind(body.job_id)
+        .first<{ attempt: number; status: string; trigger_source: string }>();
+
+      expect(job).toMatchObject({
+        status: "queued",
+        trigger_source: "manual",
+        attempt: 1,
+      });
+    });
   });
 
   describe("GET /runs/:id", () => {
@@ -349,6 +390,127 @@ describe("Gitcask API", () => {
         .first<{ status: string; attempt: number }>();
       expect(job?.status).toBe("queued");
       expect(job?.attempt).toBe(2);
+    });
+  });
+
+  describe("runRetentionCleanup", () => {
+    it("keeps recent artifacts, preserves the 7-day boundary, and caps older ones at 30", async () => {
+      const currentTime = new Date("2026-03-28T12:00:00.000Z");
+      vi.useFakeTimers();
+      vi.setSystemTime(currentTime);
+
+      const repoId = crypto.randomUUID();
+      const jobId = crypto.randomUUID();
+      const runId = crypto.randomUUID();
+      const ts = currentTime.toISOString();
+
+      await env.DB.prepare(
+        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(repoId, "test-owner", "retention-repo", 60, 1, ts, ts, ts)
+        .run();
+
+      await env.DB.prepare(
+        "INSERT INTO jobs (id, repo_id, trigger_source, idempotency_key, status, attempt, deadline_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(
+          jobId,
+          repoId,
+          "manual",
+          `retention-${repoId}`,
+          "completed",
+          1,
+          ts,
+          ts,
+          ts
+        )
+        .run();
+
+      await env.DB.prepare(
+        "INSERT INTO runs (id, repo_id, job_id, status, started_at, finished_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(runId, repoId, jobId, "completed", ts, ts, ts)
+        .run();
+
+      const repoPrefix = "repos/test-owner/retention-repo/snapshots";
+      const retentionThreshold = new Date(
+        currentTime.getTime() - 7 * 24 * 60 * 60 * 1000
+      ).toISOString();
+      const deletedObjectKey = `${repoPrefix}/delete-me.tar.gz`;
+      const artifactRows = [
+        {
+          created_at: currentTime.toISOString(),
+          object_key: `${repoPrefix}/recent.tar.gz`,
+        },
+        {
+          created_at: retentionThreshold,
+          object_key: `${repoPrefix}/boundary.tar.gz`,
+        },
+        ...Array.from({ length: 30 }, (_, index) => ({
+          created_at: new Date(
+            currentTime.getTime() - (8 + index) * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          object_key: `${repoPrefix}/keep-${index}.tar.gz`,
+        })),
+        {
+          created_at: new Date(
+            currentTime.getTime() - 90 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          object_key: deletedObjectKey,
+        },
+      ];
+
+      for (const artifact of artifactRows) {
+        await env.DB.prepare(
+          "INSERT INTO artifacts (id, run_id, repo_id, object_key, sha256, size_bytes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        )
+          .bind(
+            crypto.randomUUID(),
+            runId,
+            repoId,
+            artifact.object_key,
+            "abc123",
+            1024,
+            artifact.created_at
+          )
+          .run();
+        await env.BUCKET.put(artifact.object_key, "archive");
+        await env.BUCKET.put(
+          artifact.object_key.replace(".tar.gz", "_metadata.json"),
+          "metadata"
+        );
+      }
+
+      await runRetentionCleanup(env);
+
+      const remainingArtifacts = await env.DB.prepare(
+        "SELECT COUNT(*) as count FROM artifacts WHERE repo_id = ?"
+      )
+        .bind(repoId)
+        .first<{ count: number }>();
+
+      expect(remainingArtifacts?.count).toBe(32);
+
+      const deletedArtifact = await env.DB.prepare(
+        "SELECT id FROM artifacts WHERE object_key = ?"
+      )
+        .bind(deletedObjectKey)
+        .first();
+      expect(deletedArtifact).toBeNull();
+
+      const deletedArchive = await env.BUCKET.get(deletedObjectKey);
+      const deletedMetadata = await env.BUCKET.get(
+        deletedObjectKey.replace(".tar.gz", "_metadata.json")
+      );
+      expect(deletedArchive).toBeNull();
+      expect(deletedMetadata).toBeNull();
+
+      const boundaryArtifact = await env.DB.prepare(
+        "SELECT id FROM artifacts WHERE object_key = ?"
+      )
+        .bind(`${repoPrefix}/boundary.tar.gz`)
+        .first();
+      expect(boundaryArtifact).not.toBeNull();
     });
   });
 });

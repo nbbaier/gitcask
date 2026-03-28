@@ -13,8 +13,13 @@ export async function fireWebhook(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-  } catch {
+  } catch (error) {
     // Best-effort: webhook failures are not retried
-    console.error("Webhook delivery failed", { url, payload });
+    console.error("Webhook delivery failed", {
+      event: payload.event,
+      job_id: payload.job_id,
+      repo_id: payload.repo.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }

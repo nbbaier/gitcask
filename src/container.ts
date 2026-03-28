@@ -2,7 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./types.ts";
 
 export class BackupContainer extends DurableObject<Env> {
-  async fetch(request: Request): Promise<Response> {
+  override async fetch(request: Request): Promise<Response> {
     if (this.ctx.container && !this.ctx.container.running) {
       this.ctx.container.start({ enableInternet: true });
       await this.ctx.container.monitor();

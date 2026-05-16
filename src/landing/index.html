@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gitcask — Automated GitHub Repository Backups</title>
+    <meta
+      name="description"
+      content="Automated backups for your GitHub repositories. Set it and forget it — gitcask keeps your code safe in Cloudflare R2."
+    >
+    <link rel="preconnect" href="https://rsms.me/">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&family=Instrument+Serif&family=Mona+Sans:wght@200..900&display=swap"
+      rel="stylesheet"
+    >
+    <script src="https://cdn.tailwindcss.com?plugins="></script>
+    <script>
+    "use strict";
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            "sans-geist": ['"Geist"', "sans-serif"],
+            "mono-geist": ['"Geist Mono"', "monospace"],
+            "sans-inter": ['"InterVariable"', "sans-serif"],
+            display: ['"Instrument Serif"', "serif"],
+            "sans-mona": ['"Mona Sans"', "sans-serif"],
+          },
+        },
+      },
+    };
+    </script>
+  </head>
+  <body class="isolate">
+    <!-- ======================== CONCEPT A: Developer CLI ======================== -->
+    <div
+      data-uidotsh-pick="Landing page concept"
+      data-uidotsh-option="Developer CLI — Geist, emerald accent, left-aligned"
+      class="contents"
+    >
+      <div class="min-h-dvh bg-white font-sans-geist text-zinc-950">
+        <!-- Header -->
+        <header class="py-5">
+          <nav
+            class="mx-auto flex max-w-7xl items-center justify-between px-6 lg:px-8"
+          >
+            <a href="/" aria-label="Homepage" class="flex items-center gap-2">
+              <img
+                src="https://assets.ui.sh/marks/1.svg?text=gitcask&font=space-grotesk&weight=600&color=emerald-600&textColor=zinc-900"
+                alt="gitcask"
+                class="h-7"
+              >
+            </a>
+            <div class="flex items-center gap-6 max-lg:hidden">
+              <a
+                href="#features"
+                class="text-sm font-medium text-zinc-600 hover:text-zinc-950"
+                >Features</a
+              >
+              <a
+                href="#how-it-works"
+                class="text-sm font-medium text-zinc-600 hover:text-zinc-950"
+                >How it works</a
+              >
+              <a
+                href="#pricing"
+                class="text-sm font-medium text-zinc-600 hover:text-zinc-950"
+                >Pricing</a
+              >
+            </div>
+            <a
+              href="#get-started"
+              class="rounded-md bg-zinc-100 px-3 py-1.5 text-sm font-medium text-zinc-900 ring-1 ring-zinc-950/5 hover:bg-zinc-200"
+              >Get started</a
+            >
+          </nav>
+        </header>
+
+        <!-- Hero -->
+        <section class="py-24 sm:py-32">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="max-w-2xl">
+              <p class="text-sm font-medium text-emerald-600">
+                Automated backups
+              </p>
+              <h1
+                class="mt-4 max-w-[20ch] text-5xl font-semibold tracking-tight text-balance sm:text-6xl"
+              >
+                Your repos, always backed up
+              </h1>
+              <p class="mt-6 max-w-[48ch] text-lg text-pretty text-zinc-600">
+                gitcask automatically backs up your GitHub repositories to
+                Cloudflare R2. Set a schedule, configure retention, and never
+                worry about losing code again.
+              </p>
+              <div class="mt-10 flex items-center gap-4">
+                <a
+                  href="#get-started"
+                  class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                  >Start backing up</a
+                >
+                <a
+                  href="#how-it-works"
+                  class="text-sm font-semibold text-zinc-900 hover:text-zinc-600"
+                  >How it works &rarr;</a
+                >
+              </div>
+            </div>
+            <div
+              class="mt-16 rounded-lg bg-zinc-950 p-6 ring-1 ring-white/10 sm:mt-20"
+            >
+              <pre
+                class="font-mono-geist text-sm text-zinc-300"
+              ><code><span class="text-emerald-400">$</span> gitcask add --repo owner/my-repo --schedule "0 3 * * *"
+<span class="text-zinc-500">✓ Repository added. Next backup at 03:00 UTC.</span>
+
+<span class="text-emerald-400">$</span> gitcask status
+<span class="text-zinc-500">REPO                 LAST BACKUP    STATUS     SIZE</span>
+owner/my-repo        2 hours ago    <span class="text-emerald-400">healthy</span>    142 MB
+owner/api-service    5 hours ago    <span class="text-emerald-400">healthy</span>    89 MB
+owner/docs           1 day ago      <span class="text-emerald-400">healthy</span>    24 MB</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- Features -->
+        <section id="features" class="py-24 sm:py-32">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div>
+              <p class="text-sm font-medium text-emerald-600">
+                Everything you need
+              </p>
+              <h2
+                class="mt-4 max-w-[30ch] text-3xl font-semibold tracking-tight text-balance"
+              >
+                Backups that just work
+              </h2>
+              <p class="mt-4 max-w-[56ch] text-base text-pretty text-zinc-600">
+                Configure once and let gitcask handle the rest. Every backup is
+                verified, compressed, and stored safely.
+              </p>
+            </div>
+            <dl
+              class="mt-16 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              <div>
+                <dt class="text-sm font-semibold text-zinc-950">
+                  Scheduled backups
+                </dt>
+                <dd class="mt-2 text-sm text-zinc-600">
+                  Set cron schedules per repository. Daily, hourly, or anything
+                  in between — gitcask runs on time, every time.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-zinc-950">
+                  Cloudflare R2 storage
+                </dt>
+                <dd class="mt-2 text-sm text-zinc-600">
+                  Backups land in R2 with zero egress fees. Access your archives
+                  from anywhere without surprise costs.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-zinc-950">
+                  Configurable retention
+                </dt>
+                <dd class="mt-2 text-sm text-zinc-600">
+                  Keep the last N backups or retain everything. Automatic
+                  cleanup means storage stays lean.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-zinc-950">
+                  Job monitoring
+                </dt>
+                <dd class="mt-2 text-sm text-zinc-600">
+                  Track every backup run with detailed status, timing, and error
+                  reporting through the API or CLI.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-zinc-950">
+                  Retry with queues
+                </dt>
+                <dd class="mt-2 text-sm text-zinc-600">
+                  Failed backups automatically retry through Cloudflare Queues.
+                  Transient errors don't mean lost backups.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-zinc-950">
+                  Full API access
+                </dt>
+                <dd class="mt-2 text-sm text-zinc-600">
+                  Manage repos, trigger backups, and query status through a
+                  clean REST API. Integrate with your existing workflow.
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        <!-- How it works -->
+        <section
+          id="how-it-works"
+          class="border-t border-zinc-100 py-24 sm:py-32"
+        >
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div>
+              <p class="text-sm font-medium text-emerald-600">Simple setup</p>
+              <h2
+                class="mt-4 max-w-[30ch] text-3xl font-semibold tracking-tight text-balance"
+              >
+                Three steps to safe repos
+              </h2>
+            </div>
+            <ol
+              class="mt-16 grid grid-cols-1 gap-10 sm:grid-cols-3"
+              role="list"
+            >
+              <li>
+                <p
+                  class="font-mono-geist text-sm tabular-nums text-emerald-600"
+                >
+                  01
+                </p>
+                <p class="mt-3 text-sm font-semibold text-zinc-950">
+                  Connect your GitHub
+                </p>
+                <p class="mt-2 text-sm text-zinc-600">
+                  Add your repositories with a single command or API call.
+                  gitcask handles authentication and permissions.
+                </p>
+              </li>
+              <li>
+                <p
+                  class="font-mono-geist text-sm tabular-nums text-emerald-600"
+                >
+                  02
+                </p>
+                <p class="mt-3 text-sm font-semibold text-zinc-950">
+                  Set your schedule
+                </p>
+                <p class="mt-2 text-sm text-zinc-600">
+                  Choose a cron schedule and retention policy. Backups run
+                  automatically at the cadence you need.
+                </p>
+              </li>
+              <li>
+                <p
+                  class="font-mono-geist text-sm tabular-nums text-emerald-600"
+                >
+                  03
+                </p>
+                <p class="mt-3 text-sm font-semibold text-zinc-950">Relax</p>
+                <p class="mt-2 text-sm text-zinc-600">
+                  gitcask clones, compresses, and stores your repos in R2. Check
+                  status anytime through the CLI or API.
+                </p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="py-24 sm:py-32">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="rounded-lg bg-zinc-950 px-6 py-16 sm:px-16 sm:py-24">
+              <div class="max-w-xl">
+                <h2
+                  class="max-w-[24ch] text-3xl font-semibold tracking-tight text-white text-balance"
+                >
+                  Stop losing sleep over lost repos
+                </h2>
+                <p
+                  class="mt-4 max-w-[48ch] text-base text-pretty text-zinc-400"
+                >
+                  Start backing up your GitHub repositories in minutes. No
+                  credit card required.
+                </p>
+                <div class="mt-8">
+                  <a
+                    href="#get-started"
+                    class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                    >Get started free</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-zinc-100 py-12">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+              <img
+                src="https://assets.ui.sh/marks/1.svg?text=gitcask&font=space-grotesk&weight=600&color=emerald-600&textColor=zinc-400"
+                alt="gitcask"
+                class="h-5"
+              >
+              <p class="text-sm text-zinc-400">
+                &copy; 2026 gitcask. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ======================== CONCEPT B: Vault — Premium editorial ======================== -->
+    <div
+      data-uidotsh-option="Vault — Instrument Serif, warm stone, centered hero"
+      class="contents"
+      hidden
+    >
+      <div class="min-h-dvh bg-stone-50 font-sans-inter text-stone-950">
+        <!-- Header -->
+        <header class="py-5">
+          <nav
+            class="mx-auto flex max-w-7xl items-center justify-between px-6 lg:px-8"
+          >
+            <a href="/" aria-label="Homepage" class="flex items-center gap-2">
+              <img
+                src="https://assets.ui.sh/marks/1.svg?text=gitcask&font=dm-sans&weight=600&color=amber-700&textColor=stone-900"
+                alt="gitcask"
+                class="h-7"
+              >
+            </a>
+            <div class="flex items-center gap-6 max-lg:hidden">
+              <a
+                href="#features"
+                class="text-sm font-medium text-stone-500 hover:text-stone-900"
+                >Features</a
+              >
+              <a
+                href="#how-it-works"
+                class="text-sm font-medium text-stone-500 hover:text-stone-900"
+                >How it works</a
+              >
+              <a
+                href="#pricing"
+                class="text-sm font-medium text-stone-500 hover:text-stone-900"
+                >Pricing</a
+              >
+            </div>
+            <a
+              href="#get-started"
+              class="rounded-full bg-stone-100 px-3 py-1.5 text-sm font-medium text-stone-900 ring-1 ring-stone-950/5 hover:bg-stone-200"
+              >Get started</a
+            >
+          </nav>
+        </header>
+
+        <!-- Hero -->
+        <section class="py-32 sm:py-40">
+          <div class="mx-auto max-w-7xl px-6 text-center lg:px-8">
+            <p class="text-sm font-medium tracking-wide text-amber-700">
+              Automated repository backups
+            </p>
+            <h1
+              class="mx-auto mt-6 max-w-[20ch] font-display text-6xl font-normal text-balance sm:text-7xl"
+            >
+              Your code deserves a vault
+            </h1>
+            <p
+              class="mx-auto mt-8 max-w-[48ch] text-lg text-pretty text-stone-500"
+            >
+              gitcask quietly backs up every GitHub repository you care about.
+              Stored in Cloudflare R2, available whenever you need it.
+            </p>
+            <div class="mt-12 flex items-center justify-center gap-6">
+              <a
+                href="#get-started"
+                class="rounded-full bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
+                >Start protecting your repos</a
+              >
+              <a
+                href="#how-it-works"
+                class="text-sm font-semibold text-stone-900 hover:text-stone-600"
+                >Learn more &rarr;</a
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- Features -->
+        <section id="features" class="py-24 sm:py-32">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div>
+              <p class="text-sm font-medium tracking-wide text-amber-700">
+                Built for peace of mind
+              </p>
+              <h2 class="mt-4 max-w-[30ch] font-display text-4xl text-balance">
+                Everything runs in the background
+              </h2>
+              <p class="mt-4 max-w-[48ch] text-base text-pretty text-stone-500">
+                No dashboards to watch. No scripts to maintain. gitcask handles
+                scheduling, storage, and cleanup automatically.
+              </p>
+            </div>
+            <dl
+              class="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              <div>
+                <dt class="text-sm font-semibold text-stone-950">
+                  Scheduled backups
+                </dt>
+                <dd class="mt-3 text-sm text-stone-500">
+                  Define a cron schedule per repository. Backups run
+                  automatically — daily, hourly, or on your own cadence.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-stone-950">R2 storage</dt>
+                <dd class="mt-3 text-sm text-stone-500">
+                  Every backup is compressed and stored in Cloudflare R2. No
+                  egress fees, ever.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-stone-950">
+                  Smart retention
+                </dt>
+                <dd class="mt-3 text-sm text-stone-500">
+                  Set how many backups to keep. Old archives are pruned
+                  automatically so storage stays clean.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-stone-950">
+                  Automatic retries
+                </dt>
+                <dd class="mt-3 text-sm text-stone-500">
+                  If a backup fails, it retries through a durable message queue.
+                  Transient errors resolve themselves.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-stone-950">
+                  Full observability
+                </dt>
+                <dd class="mt-3 text-sm text-stone-500">
+                  Every run is logged with timing, status, and error detail.
+                  Query through the API or CLI anytime.
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-semibold text-stone-950">REST API</dt>
+                <dd class="mt-3 text-sm text-stone-500">
+                  Add repos, trigger backups, and check status programmatically.
+                  Fits into any automation workflow.
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        <!-- How it works -->
+        <section
+          id="how-it-works"
+          class="border-t border-stone-200 py-24 sm:py-32"
+        >
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="text-center">
+              <p class="text-sm font-medium tracking-wide text-amber-700">
+                Getting started
+              </p>
+              <h2
+                class="mx-auto mt-4 max-w-[30ch] font-display text-4xl text-balance"
+              >
+                Up and running in minutes
+              </h2>
+            </div>
+            <ol
+              class="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-3"
+              role="list"
+            >
+              <li class="text-center">
+                <p class="font-display text-4xl text-stone-300">1</p>
+                <p class="mt-4 text-sm font-semibold text-stone-950">
+                  Add your repositories
+                </p>
+                <p class="mt-2 text-sm text-stone-500">
+                  Point gitcask at the repos you want to protect. One command,
+                  one API call — that's all it takes.
+                </p>
+              </li>
+              <li class="text-center">
+                <p class="font-display text-4xl text-stone-300">2</p>
+                <p class="mt-4 text-sm font-semibold text-stone-950">
+                  Configure your schedule
+                </p>
+                <p class="mt-2 text-sm text-stone-500">
+                  Set a cron schedule and retention window. gitcask will handle
+                  the timing and cleanup.
+                </p>
+              </li>
+              <li class="text-center">
+                <p class="font-display text-4xl text-stone-300">3</p>
+                <p class="mt-4 text-sm font-semibold text-stone-950">
+                  Forget about it
+                </p>
+                <p class="mt-2 text-sm text-stone-500">
+                  Backups run silently. Check in anytime to see status, or just
+                  trust that your code is safe.
+                </p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="py-24 sm:py-32">
+          <div class="mx-auto max-w-7xl px-6 text-center lg:px-8">
+            <h2 class="mx-auto max-w-[20ch] font-display text-5xl text-balance">
+              Peace of mind starts here
+            </h2>
+            <p
+              class="mx-auto mt-6 max-w-[48ch] text-lg text-pretty text-stone-500"
+            >
+              Get gitcask running today. Your future self will thank you.
+            </p>
+            <div class="mt-10">
+              <a
+                href="#get-started"
+                class="rounded-full bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
+                >Get started free</a
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-stone-200 py-12">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+              <img
+                src="https://assets.ui.sh/marks/1.svg?text=gitcask&font=dm-sans&weight=600&color=amber-700&textColor=stone-400"
+                alt="gitcask"
+                class="h-5"
+              >
+              <p class="text-sm text-stone-400">
+                &copy; 2026 gitcask. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ======================== CONCEPT C: Infrastructure — Dark, bold, modern ======================== -->
+    <div
+      data-uidotsh-option="Infrastructure — Mona Sans, dark mode, cyan accent"
+      class="contents"
+      hidden
+    >
+      <div class="min-h-dvh bg-neutral-950 font-sans-mona text-white">
+        <!-- Header -->
+        <header class="py-5">
+          <nav
+            class="mx-auto flex max-w-7xl items-center justify-between px-6 lg:px-8"
+          >
+            <a href="/" aria-label="Homepage" class="flex items-center gap-2">
+              <img
+                src="https://assets.ui.sh/marks/1.svg?text=gitcask&font=space-grotesk&weight=600&color=cyan-400&textColor=white"
+                alt="gitcask"
+                class="h-7"
+              >
+            </a>
+            <div class="flex items-center gap-6 max-lg:hidden">
+              <a
+                href="#features"
+                class="text-sm font-medium text-neutral-400 hover:text-white"
+                >Features</a
+              >
+              <a
+                href="#how-it-works"
+                class="text-sm font-medium text-neutral-400 hover:text-white"
+                >How it works</a
+              >
+              <a
+                href="#pricing"
+                class="text-sm font-medium text-neutral-400 hover:text-white"
+                >Pricing</a
+              >
+            </div>
+            <a
+              href="#get-started"
+              class="rounded-lg bg-white/5 px-3 py-1.5 text-sm font-medium text-white ring-1 ring-white/10 hover:bg-white/10"
+              >Get started</a
+            >
+          </nav>
+        </header>
+
+        <!-- Hero -->
+        <section class="py-24 sm:py-32">
+          <div class="mx-auto max-w-7xl px-6 text-center lg:px-8">
+            <div
+              class="inline-flex items-center gap-2 rounded-full bg-cyan-400/10 px-3 py-1 ring-1 ring-cyan-400/20"
+            >
+              <span class="size-1.5 rounded-full bg-cyan-400"></span>
+              <span class="text-sm font-medium text-cyan-400"
+                >Now in public beta</span
+              >
+            </div>
+            <h1
+              class="mx-auto mt-8 max-w-[20ch] text-5xl font-semibold tracking-tight text-balance sm:text-7xl"
+            >
+              Backup infrastructure for GitHub
+            </h1>
+            <p
+              class="mx-auto mt-8 max-w-[48ch] text-lg text-pretty text-neutral-400"
+            >
+              Automated, scheduled, and reliable. gitcask clones your
+              repositories and stores them in Cloudflare R2 with zero egress
+              fees.
+            </p>
+            <div class="mt-12 flex items-center justify-center gap-4">
+              <a
+                href="#get-started"
+                class="rounded-lg bg-cyan-400 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                >Deploy gitcask</a
+              >
+              <a
+                href="#how-it-works"
+                class="rounded-lg bg-white/5 px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10 hover:bg-white/10"
+                >See how it works</a
+              >
+            </div>
+            <div class="mt-20 overflow-hidden rounded-xl ring-1 ring-white/10">
+              <img
+                src="https://assets.ui.sh/screenshots/1.webp"
+                alt="gitcask dashboard"
+                class="w-full"
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- Features -->
+        <section id="features" class="py-24 sm:py-32">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="text-center">
+              <p class="text-sm font-medium text-cyan-400">Core features</p>
+              <h2
+                class="mx-auto mt-4 max-w-[30ch] text-3xl font-semibold tracking-tight text-balance"
+              >
+                Built on Cloudflare, built to last
+              </h2>
+            </div>
+            <dl
+              class="mt-20 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              <div class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <dt class="text-sm font-semibold text-white">
+                  Cron scheduling
+                </dt>
+                <dd class="mt-3 text-sm text-neutral-400">
+                  Per-repository cron schedules with automatic execution. Every
+                  backup runs on time through Cloudflare Workers.
+                </dd>
+              </div>
+              <div class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <dt class="text-sm font-semibold text-white">
+                  R2 object storage
+                </dt>
+                <dd class="mt-3 text-sm text-neutral-400">
+                  Compressed archives stored in Cloudflare R2. Zero egress fees,
+                  globally distributed, always available.
+                </dd>
+              </div>
+              <div class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <dt class="text-sm font-semibold text-white">
+                  Retention policies
+                </dt>
+                <dd class="mt-3 text-sm text-neutral-400">
+                  Configurable retention per repo. Old backups are automatically
+                  pruned to keep storage costs predictable.
+                </dd>
+              </div>
+              <div class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <dt class="text-sm font-semibold text-white">
+                  Queue-backed retries
+                </dt>
+                <dd class="mt-3 text-sm text-neutral-400">
+                  Failed jobs route through Cloudflare Queues for automatic
+                  retry. No backup is silently lost.
+                </dd>
+              </div>
+              <div class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <dt class="text-sm font-semibold text-white">Job tracking</dt>
+                <dd class="mt-3 text-sm text-neutral-400">
+                  Full audit trail for every backup run — status, duration,
+                  size, and errors. Query via API anytime.
+                </dd>
+              </div>
+              <div class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <dt class="text-sm font-semibold text-white">REST + CLI</dt>
+                <dd class="mt-3 text-sm text-neutral-400">
+                  Manage everything through a clean REST API or the gitcask CLI.
+                  Automate with your existing tools.
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+
+        <!-- How it works -->
+        <section
+          id="how-it-works"
+          class="border-t border-white/5 py-24 sm:py-32"
+        >
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div>
+              <p class="text-sm font-medium text-cyan-400">Quick start</p>
+              <h2
+                class="mt-4 max-w-[30ch] text-3xl font-semibold tracking-tight text-balance"
+              >
+                Deploy in three steps
+              </h2>
+            </div>
+            <ol
+              class="mt-16 grid grid-cols-1 gap-10 sm:grid-cols-3"
+              role="list"
+            >
+              <li class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <p class="text-sm font-semibold tabular-nums text-cyan-400">
+                  01
+                </p>
+                <p class="mt-4 text-sm font-semibold text-white">
+                  Connect GitHub
+                </p>
+                <p class="mt-2 text-sm text-neutral-400">
+                  Add your repositories via the CLI or API. gitcask
+                  authenticates with your GitHub token and validates access.
+                </p>
+              </li>
+              <li class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <p class="text-sm font-semibold tabular-nums text-cyan-400">
+                  02
+                </p>
+                <p class="mt-4 text-sm font-semibold text-white">
+                  Set schedule & retention
+                </p>
+                <p class="mt-2 text-sm text-neutral-400">
+                  Define cron expressions and how many backups to keep. gitcask
+                  handles the orchestration and cleanup.
+                </p>
+              </li>
+              <li class="rounded-xl bg-white/5 p-6 ring-1 ring-white/10">
+                <p class="text-sm font-semibold tabular-nums text-cyan-400">
+                  03
+                </p>
+                <p class="mt-4 text-sm font-semibold text-white">
+                  Monitor or walk away
+                </p>
+                <p class="mt-2 text-sm text-neutral-400">
+                  Check backup status anytime via the API. Or don't — gitcask
+                  runs reliably in the background either way.
+                </p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="py-24 sm:py-32">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div
+              class="rounded-xl bg-cyan-400/5 p-8 ring-1 ring-cyan-400/10 sm:p-16 lg:p-24"
+            >
+              <div class="mx-auto text-center">
+                <h2
+                  class="mx-auto max-w-[24ch] text-3xl font-semibold tracking-tight text-balance sm:text-4xl"
+                >
+                  Your repos are one outage away from gone
+                </h2>
+                <p
+                  class="mx-auto mt-6 max-w-[48ch] text-base text-pretty text-neutral-400"
+                >
+                  Don't wait for an incident. Deploy gitcask now and sleep
+                  better tonight.
+                </p>
+                <div class="mt-10">
+                  <a
+                    href="#get-started"
+                    class="rounded-lg bg-cyan-400 px-3 py-2 text-sm font-semibold text-neutral-950 hover:bg-cyan-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400"
+                    >Deploy gitcask</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="border-t border-white/5 py-12">
+          <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+              <img
+                src="https://assets.ui.sh/marks/1.svg?text=gitcask&font=space-grotesk&weight=600&color=cyan-400&textColor=neutral-500"
+                alt="gitcask"
+                class="h-5"
+              >
+              <p class="text-sm text-neutral-500">
+                &copy; 2026 gitcask. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <script src="https://ui.sh/ui-picker.js"></script>
+  </body>
+</html>

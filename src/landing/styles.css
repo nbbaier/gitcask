@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans-geist: "Geist", sans-serif;
+  --font-mono-geist: "Geist Mono", monospace;
+  --font-sans-inter: "InterVariable", sans-serif;
+  --font-sans-inter--font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  --font-display: "Instrument Serif", serif;
+  --font-sans-mona: "Mona Sans", sans-serif;
+}

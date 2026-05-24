@@ -2,41 +2,27 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
-import { now } from "../lib/id.ts";
+import { fireWebhook } from "../lib/webhook.ts";
+import { markRunning, recordFailure } from "../services/job-lifecycle.ts";
 import type { ContainerRequest, Env, QueueMessage } from "../types.ts";
 
 export async function handleQueueMessage(
   message: Message<QueueMessage>,
   env: Env
 ): Promise<void> {
-  const { job_id, repo_id, idempotency_key } = message.body;
+  const { job_id, repo_id, idempotency_key, attempt } = message.body;
   const db = drizzle(env.DB);
 
-  console.log("[queue] received message", { job_id, repo_id, idempotency_key });
+  console.log("[queue] received message", {
+    job_id,
+    repo_id,
+    idempotency_key,
+    attempt,
+  });
 
-  // Deduplicate: check if job still exists and is in queued state
-  const [job] = await db
-    .select()
-    .from(schema.jobs)
-    .where(eq(schema.jobs.id, job_id));
-
-  if (!job || job.status !== "queued") {
-    console.log("[queue] skipping job — not found or not queued", {
-      job_id,
-      status: job?.status,
-    });
-    message.ack();
-    return;
-  }
-
-  // Check idempotency key matches
-  if (job.idempotency_key !== idempotency_key) {
-    console.log("[queue] skipping job — idempotency key mismatch", { job_id });
-    message.ack();
-    return;
-  }
-
-  // Get repo details
+  // Fetch repo before transitioning the job — a missing repo must leave
+  // the job in `queued`, never strand it in `running` waiting for the
+  // 15-minute deadline sweep to clean it up.
   const [repo] = await db
     .select()
     .from(schema.repos)
@@ -48,23 +34,18 @@ export async function handleQueueMessage(
     return;
   }
 
-  // Mark job as running
-  const timestamp = now();
-  await db
-    .update(schema.jobs)
-    .set({
-      status: "running",
-      deadline_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-      updated_at: timestamp,
-    })
-    .where(eq(schema.jobs.id, job_id));
+  const transition = await markRunning(db, job_id, idempotency_key, attempt);
+  if (!transition.ok) {
+    console.log("[queue] skipping job", { job_id, reason: transition.reason });
+    message.ack();
+    return;
+  }
 
   console.log("[queue] job marked running", {
     job_id,
     repo: `${repo.owner}/${repo.name}`,
   });
 
-  // Dispatch to container (async - container will call back)
   const containerPayload: ContainerRequest = {
     job_id,
     owner: repo.owner,
@@ -103,35 +84,46 @@ export async function handleQueueMessage(
       status: res.status,
     });
   } catch (err) {
-    // Container dispatch failed - mark job back to queued for retry via callback
+    const errorMsg = `Container dispatch failed: ${err instanceof Error ? err.message : String(err)}`;
     console.error("[queue] container dispatch failed", {
       job_id,
-      error: err instanceof Error ? err.message : String(err),
+      error: errorMsg,
     });
-    // Simulate a failed callback
-    const callbackPayload = {
-      job_id,
-      success: false,
-      error: `Container dispatch failed: ${err instanceof Error ? err.message : String(err)}`,
-    };
 
-    // Update job back to running so the callback handler can process it
-    // (it's already running from above)
-    try {
-      await fetch(`${env.WORKER_URL}/internal/jobs/${job_id}/complete`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${env.ADMIN_TOKEN}`,
-        },
-        body: JSON.stringify(callbackPayload),
+    const failure = await recordFailure(db, job_id, errorMsg);
+    if (!failure.ok) {
+      console.error("[queue] could not record dispatch failure", {
+        job_id,
+        reason: failure.reason,
       });
-    } catch {
-      // If even the self-callback fails, just fail the job directly
-      await db
-        .update(schema.jobs)
-        .set({ status: "failed", updated_at: now() })
-        .where(eq(schema.jobs.id, job_id));
+      message.ack();
+      return;
+    }
+
+    if (failure.outcome.kind === "retry") {
+      await env.JOB_QUEUE.send(
+        {
+          job_id,
+          repo_id,
+          idempotency_key,
+          attempt: failure.outcome.nextAttempt,
+          trigger_source: message.body.trigger_source,
+        },
+        { delaySeconds: Math.ceil(failure.outcome.delayMs / 1000) }
+      );
+      console.log("[queue] dispatch failure — retry scheduled", {
+        job_id,
+        attempt: failure.outcome.nextAttempt,
+      });
+    } else if (env.WEBHOOK_URL) {
+      await fireWebhook(env.WEBHOOK_URL, {
+        event: "backup.failed",
+        repo: { id: repo.id, owner: repo.owner, name: repo.name },
+        job_id,
+        attempts: failure.outcome.attempts,
+        error: errorMsg,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 

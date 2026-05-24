@@ -4,6 +4,12 @@ import { Hono } from "hono";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
+import { fireWebhook } from "../lib/webhook.ts";
+import type {
+  FailureOutcome,
+  MarkCompletedResult,
+} from "../services/job-lifecycle.ts";
+import { markCompleted, recordFailure } from "../services/job-lifecycle.ts";
 import type { ContainerCallbackPayload, Env, JobStage } from "../types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -62,6 +68,93 @@ app.post("/:id/progress", async (c) => {
   return c.json({ status: "updated", stage });
 });
 
+type DB = ReturnType<typeof drizzle>;
+
+async function recordSuccessfulBackup(
+  db: DB,
+  env: Env,
+  result: Extract<MarkCompletedResult, { ok: true }>,
+  payload: ContainerCallbackPayload
+): Promise<void> {
+  const [repo] = await db
+    .select()
+    .from(schema.repos)
+    .where(eq(schema.repos.id, result.repoId));
+
+  if (!repo) {
+    return;
+  }
+
+  if (
+    payload.sha256 != null &&
+    payload.size_bytes != null &&
+    payload.object_key != null
+  ) {
+    await db.insert(schema.artifacts).values({
+      id: generateId(),
+      run_id: result.runId,
+      repo_id: repo.id,
+      object_key: payload.object_key,
+      sha256: payload.sha256,
+      size_bytes: payload.size_bytes,
+      created_at: result.finishedAt,
+    });
+  }
+
+  if (!payload.object_key) {
+    return;
+  }
+
+  const latestKey = `repos/${repo.owner}/${repo.name}/latest.json`;
+  await env.BUCKET.put(
+    latestKey,
+    JSON.stringify({
+      run_id: result.runId,
+      object_key: payload.object_key,
+      metadata_key: payload.metadata_key,
+      sha256: payload.sha256,
+      size_bytes: payload.size_bytes,
+      timestamp: result.finishedAt,
+    })
+  );
+
+  await db
+    .update(schema.repos)
+    .set({
+      last_pushed_at: payload.pushed_at ?? repo.last_pushed_at,
+      last_backup_at: result.finishedAt,
+      updated_at: result.finishedAt,
+    })
+    .where(eq(schema.repos.id, repo.id));
+}
+
+async function reportPermanentFailure(
+  db: DB,
+  env: Env,
+  jobId: string,
+  outcome: Extract<FailureOutcome, { kind: "gave-up" }>,
+  error: string
+): Promise<void> {
+  if (!env.WEBHOOK_URL) {
+    return;
+  }
+  const [repo] = await db
+    .select()
+    .from(schema.repos)
+    .where(eq(schema.repos.id, outcome.repoId));
+  if (!repo) {
+    return;
+  }
+  await fireWebhook(env.WEBHOOK_URL, {
+    event: "backup.failed",
+    repo: { id: repo.id, owner: repo.owner, name: repo.name },
+    job_id: jobId,
+    attempts: outcome.attempts,
+    error,
+    timestamp: new Date().toISOString(),
+  });
+}
+
 // POST /internal/jobs/:id/complete - Container callback
 app.post("/:id/complete", async (c) => {
   const jobId = c.req.param("id");
@@ -75,187 +168,67 @@ app.post("/:id/complete", async (c) => {
 
   const db = drizzle(c.env.DB);
 
-  const [job] = await db
-    .select()
-    .from(schema.jobs)
-    .where(eq(schema.jobs.id, jobId));
-
-  if (!job) {
-    console.log("[callback] rejected — job not found", { job_id: jobId });
-    return c.json({ error: "Job not found" }, 404);
-  }
-
-  if (job.status !== "running") {
-    console.log("[callback] rejected — job not running", {
-      job_id: jobId,
-      status: job.status,
-    });
-    return c.json({ error: "Job is not in running state" }, 409);
-  }
-
-  const timestamp = now();
-
   if (payload.success) {
-    // Update job to completed
-    await db
-      .update(schema.jobs)
-      .set({
-        status: "completed",
-        stage: null,
-        stage_updated_at: null,
-        updated_at: timestamp,
-      })
-      .where(eq(schema.jobs.id, jobId));
+    const result = await markCompleted(db, jobId);
+    if (!result.ok) {
+      console.log("[callback] rejected", {
+        job_id: jobId,
+        reason: result.reason,
+      });
+      const status = result.reason === "not-found" ? 404 : 409;
+      return c.json({ error: result.reason }, status);
+    }
 
     console.log("[callback] job completed", {
       job_id: jobId,
+      run_id: result.runId,
       object_key: payload.object_key,
       size_bytes: payload.size_bytes,
     });
 
-    // Create run record
-    const runId = generateId();
-    await db.insert(schema.runs).values({
-      id: runId,
-      repo_id: job.repo_id,
-      job_id: jobId,
-      status: "completed",
-      started_at: job.created_at,
-      finished_at: timestamp,
-      created_at: timestamp,
-    });
-
-    // Create artifact record
-    if (payload.sha256 && payload.size_bytes && payload.object_key) {
-      await db.insert(schema.artifacts).values({
-        id: generateId(),
-        run_id: runId,
-        repo_id: job.repo_id,
-        object_key: payload.object_key,
-        sha256: payload.sha256,
-        size_bytes: payload.size_bytes,
-        created_at: timestamp,
-      });
-    }
-
-    // Update latest.json in R2
-    const [repo] = await db
-      .select()
-      .from(schema.repos)
-      .where(eq(schema.repos.id, job.repo_id));
-
-    if (repo && payload.object_key) {
-      const latestKey = `repos/${repo.owner}/${repo.name}/latest.json`;
-      await c.env.BUCKET.put(
-        latestKey,
-        JSON.stringify({
-          run_id: runId,
-          object_key: payload.object_key,
-          metadata_key: payload.metadata_key,
-          sha256: payload.sha256,
-          size_bytes: payload.size_bytes,
-          timestamp,
-        })
-      );
-
-      await db
-        .update(schema.repos)
-        .set({
-          last_pushed_at: payload.pushed_at ?? repo.last_pushed_at,
-          last_backup_at: timestamp,
-          updated_at: timestamp,
-        })
-        .where(eq(schema.repos.id, job.repo_id));
-    }
-
+    await recordSuccessfulBackup(db, c.env, result, payload);
     return c.json({ status: "completed" });
   }
-  // Handle failure
-  const maxRetries = 4; // initial + 3 retries
-  const attempt = job.attempt;
 
-  if (attempt < maxRetries) {
-    // Retry: update attempt count, re-enqueue with backoff
-    const nextAttempt = attempt + 1;
-    const backoffMs = 2 ** attempt * 1000; // 2s, 4s, 8s
+  // Failure path
+  const error = payload.error ?? "Unknown error";
+  const failure = await recordFailure(db, jobId, error);
+  if (!failure.ok) {
+    console.log("[callback] rejected", {
+      job_id: jobId,
+      reason: failure.reason,
+    });
+    const status = failure.reason === "not-found" ? 404 : 409;
+    return c.json({ error: failure.reason }, status);
+  }
 
-    await db
-      .update(schema.jobs)
-      .set({
-        status: "queued",
-        stage: null,
-        stage_updated_at: null,
-        attempt: nextAttempt,
-        deadline_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-        updated_at: timestamp,
-      })
-      .where(eq(schema.jobs.id, jobId));
-
+  if (failure.outcome.kind === "retry") {
     await c.env.JOB_QUEUE.send(
       {
         job_id: jobId,
-        repo_id: job.repo_id,
-        idempotency_key: job.idempotency_key,
-        attempt: nextAttempt,
-        trigger_source: job.trigger_source,
+        repo_id: failure.outcome.repoId,
+        idempotency_key: failure.outcome.idempotencyKey,
+        attempt: failure.outcome.nextAttempt,
+        trigger_source: failure.outcome.triggerSource,
       },
-      { delaySeconds: Math.ceil(backoffMs / 1000) }
+      { delaySeconds: Math.ceil(failure.outcome.delayMs / 1000) }
     );
 
     console.log("[callback] job retrying", {
       job_id: jobId,
-      attempt: nextAttempt,
-      backoff_ms: backoffMs,
+      attempt: failure.outcome.nextAttempt,
+      delay_ms: failure.outcome.delayMs,
     });
-    return c.json({ status: "retrying", attempt: nextAttempt });
+    return c.json({ status: "retrying", attempt: failure.outcome.nextAttempt });
   }
-  // Final failure
+
   console.log("[callback] job failed permanently", {
     job_id: jobId,
-    attempts: maxRetries,
-    error: payload.error,
-  });
-  await db
-    .update(schema.jobs)
-    .set({
-      status: "failed",
-      stage: null,
-      stage_updated_at: null,
-      updated_at: timestamp,
-    })
-    .where(eq(schema.jobs.id, jobId));
-
-  // Create failed run record
-  await db.insert(schema.runs).values({
-    id: generateId(),
-    repo_id: job.repo_id,
-    job_id: jobId,
-    status: "failed",
-    started_at: job.created_at,
-    finished_at: timestamp,
-    error: payload.error ?? "Unknown error",
-    created_at: timestamp,
+    attempts: failure.outcome.attempts,
+    error,
   });
 
-  // Fire webhook
-  if (c.env.WEBHOOK_URL) {
-    const [repo] = await db
-      .select()
-      .from(schema.repos)
-      .where(eq(schema.repos.id, job.repo_id));
-
-    if (repo) {
-      const { fireWebhook } = await import("../lib/webhook.ts");
-      await fireWebhook(c.env.WEBHOOK_URL, {
-        event: "backup.failed",
-        repo: { id: repo.id, owner: repo.owner, name: repo.name },
-        job_id: jobId,
-        attempts: maxRetries,
-        error: payload.error ?? "Unknown error",
-        timestamp,
-      });
-    }
-  }
+  await reportPermanentFailure(db, c.env, jobId, failure.outcome, error);
 
   return c.json({ status: "failed" });
 });

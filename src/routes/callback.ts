@@ -199,23 +199,16 @@ app.post("/:id/complete", async (c) => {
   }
 
   if (failure.outcome.kind === "retry") {
-    const [job] = await db
-      .select()
-      .from(schema.jobs)
-      .where(eq(schema.jobs.id, jobId));
-
-    if (job) {
-      await c.env.JOB_QUEUE.send(
-        {
-          job_id: jobId,
-          repo_id: job.repo_id,
-          idempotency_key: job.idempotency_key,
-          attempt: failure.outcome.nextAttempt,
-          trigger_source: job.trigger_source,
-        },
-        { delaySeconds: Math.ceil(failure.outcome.delayMs / 1000) }
-      );
-    }
+    await c.env.JOB_QUEUE.send(
+      {
+        job_id: jobId,
+        repo_id: failure.outcome.repoId,
+        idempotency_key: failure.outcome.idempotencyKey,
+        attempt: failure.outcome.nextAttempt,
+        trigger_source: failure.outcome.triggerSource,
+      },
+      { delaySeconds: Math.ceil(failure.outcome.delayMs / 1000) }
+    );
 
     console.log("[callback] job retrying", {
       job_id: jobId,

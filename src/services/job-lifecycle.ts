@@ -122,7 +122,14 @@ export async function markCompleted(
 }
 
 export type FailureOutcome =
-  | { kind: "retry"; nextAttempt: number; delayMs: number }
+  | {
+      kind: "retry";
+      nextAttempt: number;
+      delayMs: number;
+      repoId: string;
+      idempotencyKey: string;
+      triggerSource: "schedule" | "manual";
+    }
   | { kind: "gave-up"; runId: string; repoId: string; attempts: number };
 
 export type RecordFailureResult =
@@ -170,6 +177,9 @@ export async function recordFailure(
         kind: "retry",
         nextAttempt,
         delayMs: retryBackoffMs(job.attempt),
+        repoId: job.repo_id,
+        idempotencyKey: job.idempotency_key,
+        triggerSource: job.trigger_source,
       },
     };
   }

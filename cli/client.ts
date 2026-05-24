@@ -3,11 +3,19 @@ interface ClientOptions {
   url: string;
 }
 
+interface LastRun {
+  error: string | null;
+  finished_at: string | null;
+  started_at: string;
+  status: string;
+}
+
 interface Repo {
   created_at: string;
   enabled: boolean;
   id: string;
   interval_minutes: number;
+  last_run: LastRun | null;
   name: string;
   next_run_at: string | null;
   owner: string;

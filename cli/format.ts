@@ -38,16 +38,31 @@ const repoColumns: Column[] = [
   { key: "repo", label: "REPO" },
   { key: "interval_minutes", label: "INTERVAL" },
   { key: "enabled", label: "ENABLED" },
+  { key: "last_run_status", label: "LAST STATUS" },
+  { key: "last_run_at", label: "LAST RUN" },
   { key: "next_run_at", label: "NEXT RUN" },
 ];
 
 export function formatRepos(repos: Row[]): string {
-  const rows = repos.map((r) => ({
-    ...r,
-    repo: `${r.owner}/${r.name}`,
-    enabled: r.enabled ? "yes" : "no",
-    next_run_at: r.next_run_at ?? "-",
-  }));
+  const rows = repos.map((r) => {
+    const lastRun = r.last_run as
+      | {
+          status: string;
+          started_at: string;
+          finished_at: string | null;
+        }
+      | null
+      | undefined;
+
+    return {
+      ...r,
+      repo: `${r.owner}/${r.name}`,
+      enabled: r.enabled ? "yes" : "no",
+      last_run_status: lastRun?.status ?? "-",
+      last_run_at: lastRun?.finished_at ?? lastRun?.started_at ?? "-",
+      next_run_at: r.next_run_at ?? "-",
+    };
+  });
   return formatTable(rows, repoColumns);
 }
 

@@ -140,6 +140,101 @@ describe("Gitcask API", () => {
       const body = await res.json();
       expect(body).toEqual([]);
     });
+
+    it("includes the latest run per repo", async () => {
+      const repoId = crypto.randomUUID();
+      const jobId = crypto.randomUUID();
+      const olderRunId = crypto.randomUUID();
+      const newerRunId = crypto.randomUUID();
+      const ts = new Date().toISOString();
+
+      await env.DB.prepare(
+        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(repoId, "test-owner", "test-repo", 60, 1, ts, ts, ts)
+        .run();
+
+      await env.DB.prepare(
+        "INSERT INTO jobs (id, repo_id, trigger_source, idempotency_key, status, attempt, deadline_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(jobId, repoId, "schedule", "test-key", "completed", 1, ts, ts, ts)
+        .run();
+
+      await env.DB.prepare(
+        "INSERT INTO runs (id, repo_id, job_id, status, started_at, finished_at, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(
+          olderRunId,
+          repoId,
+          jobId,
+          "completed",
+          "2026-05-24T10:00:00.000Z",
+          "2026-05-24T10:05:00.000Z",
+          null,
+          ts
+        )
+        .run();
+
+      await env.DB.prepare(
+        "INSERT INTO runs (id, repo_id, job_id, status, started_at, finished_at, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(
+          newerRunId,
+          repoId,
+          jobId,
+          "failed",
+          "2026-05-24T12:00:00.000Z",
+          "2026-05-24T12:01:00.000Z",
+          "upload failed",
+          ts
+        )
+        .run();
+
+      const req = makeRequest("/repos");
+      const ctx = createExecutionContext();
+      const res = await worker.fetch(req, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Array<{
+        id: string;
+        last_run: {
+          status: string;
+          started_at: string;
+          finished_at: string;
+          error: string;
+        } | null;
+      }>;
+
+      expect(body).toHaveLength(1);
+      expect(body[0]?.id).toBe(repoId);
+      expect(body[0]?.last_run).toEqual({
+        status: "failed",
+        started_at: "2026-05-24T12:00:00.000Z",
+        finished_at: "2026-05-24T12:01:00.000Z",
+        error: "upload failed",
+      });
+    });
+
+    it("returns null last_run when a repo has no runs", async () => {
+      const repoId = crypto.randomUUID();
+      const ts = new Date().toISOString();
+
+      await env.DB.prepare(
+        "INSERT INTO repos (id, owner, name, interval_minutes, enabled, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+        .bind(repoId, "test-owner", "test-repo", 60, 1, ts, ts, ts)
+        .run();
+
+      const req = makeRequest("/repos");
+      const ctx = createExecutionContext();
+      const res = await worker.fetch(req, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as Array<{ last_run: null }>;
+      expect(body[0]?.last_run).toBeNull();
+    });
   });
 
   describe("PATCH /repos/:id", () => {

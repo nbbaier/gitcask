@@ -82,6 +82,48 @@ app.post("/", async (c) => {
   return c.json(repo, 201);
 });
 
+function latestRunByRepo(
+  runs: {
+    repo_id: string;
+    status: string;
+    started_at: string;
+    finished_at: string | null;
+    error: string | null;
+  }[]
+): Map<
+  string,
+  {
+    status: string;
+    started_at: string;
+    finished_at: string | null;
+    error: string | null;
+  }
+> {
+  const latest = new Map<
+    string,
+    {
+      status: string;
+      started_at: string;
+      finished_at: string | null;
+      error: string | null;
+    }
+  >();
+
+  for (const run of runs) {
+    const current = latest.get(run.repo_id);
+    if (!current || run.started_at > current.started_at) {
+      latest.set(run.repo_id, {
+        status: run.status,
+        started_at: run.started_at,
+        finished_at: run.finished_at,
+        error: run.error,
+      });
+    }
+  }
+
+  return latest;
+}
+
 // GET /repos - List all repos
 app.get("/", async (c) => {
   const db = drizzle(c.env.DB);
@@ -96,7 +138,31 @@ app.get("/", async (c) => {
   }
 
   const results = await query;
-  return c.json(results);
+
+  if (results.length === 0) {
+    return c.json([]);
+  }
+
+  const repoIds = results.map((repo) => repo.id);
+  const runs = await db
+    .select({
+      repo_id: schema.runs.repo_id,
+      status: schema.runs.status,
+      started_at: schema.runs.started_at,
+      finished_at: schema.runs.finished_at,
+      error: schema.runs.error,
+    })
+    .from(schema.runs)
+    .where(inArray(schema.runs.repo_id, repoIds));
+
+  const latestRuns = latestRunByRepo(runs);
+
+  return c.json(
+    results.map((repo) => ({
+      ...repo,
+      last_run: latestRuns.get(repo.id) ?? null,
+    }))
+  );
 });
 
 // PATCH /repos/:id - Update a repo

@@ -238,8 +238,12 @@ async function processBackup(payload: BackupRequest): Promise<void> {
     );
 
     let metadata: Record<string, unknown> = {};
+    let pushedAt: string | undefined;
     if (metaRes.ok) {
       const ghData = (await metaRes.json()) as Record<string, unknown>;
+      if (typeof ghData.pushed_at === "string") {
+        pushedAt = ghData.pushed_at;
+      }
       metadata = {
         description: ghData.description,
         topics: ghData.topics,
@@ -278,6 +282,7 @@ async function processBackup(payload: BackupRequest): Promise<void> {
       size_bytes: sizeBytes,
       object_key: objectKey,
       metadata_key: metadataKey,
+      ...(pushedAt ? { pushed_at: pushedAt } : {}),
     });
   } catch (err) {
     console.error(`Backup failed for ${owner}/${repo}:`, err);

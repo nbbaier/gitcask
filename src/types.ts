@@ -50,6 +50,7 @@ export interface ContainerCallbackPayload {
   job_id: string;
   metadata_key?: string;
   object_key?: string;
+  pushed_at?: string;
   sha256?: string;
   size_bytes?: number;
   success: boolean;

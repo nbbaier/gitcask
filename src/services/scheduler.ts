@@ -4,6 +4,14 @@ import { drizzle } from "drizzle-orm/d1";
 import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
 import type { Env, QueueMessage } from "../types.ts";
+import { checkScheduledBackup } from "./change-detection.ts";
+
+function advanceNextRunAt(
+  repo: { interval_minutes: number },
+  fromMs = Date.now()
+): string {
+  return new Date(fromMs + repo.interval_minutes * 60 * 1000).toISOString();
+}
 
 export async function handleScheduledEvent(env: Env): Promise<void> {
   const db = drizzle(env.DB);
@@ -11,7 +19,6 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
 
   console.log("[scheduler] cron tick");
 
-  // Find repos due for backup
   const dueRepos = await db
     .select()
     .from(schema.repos)
@@ -25,10 +32,32 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
   console.log("[scheduler] repos due for backup", { count: dueRepos.length });
 
   for (const repo of dueRepos) {
+    const decision = await checkScheduledBackup(repo, env.GITHUB_PAT);
+
+    if (decision.action === "skip") {
+      await db
+        .update(schema.repos)
+        .set({
+          next_run_at: advanceNextRunAt(repo),
+          updated_at: timestamp,
+        })
+        .where(eq(schema.repos.id, repo.id));
+
+      console.log("[scheduler] skipped unchanged repo", {
+        repo: `${repo.owner}/${repo.name}`,
+        pushed_at: decision.pushed_at,
+      });
+      continue;
+    }
+
+    console.log("[scheduler] backup needed", {
+      repo: `${repo.owner}/${repo.name}`,
+      reason: decision.reason,
+    });
+
     const jobId = generateId();
     const idempotencyKey = `schedule_${repo.id}_${Date.now()}`;
 
-    // Create job
     await db.insert(schema.jobs).values({
       id: jobId,
       repo_id: repo.id,
@@ -41,7 +70,6 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
       updated_at: timestamp,
     });
 
-    // Enqueue
     const message: QueueMessage = {
       job_id: jobId,
       repo_id: repo.id,
@@ -57,18 +85,12 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
       repo: `${repo.owner}/${repo.name}`,
     });
 
-    // Advance next_run_at
-    const nextRun = new Date(
-      Date.now() + repo.interval_minutes * 60 * 1000
-    ).toISOString();
-
     await db
       .update(schema.repos)
-      .set({ next_run_at: nextRun, updated_at: timestamp })
+      .set({ next_run_at: advanceNextRunAt(repo), updated_at: timestamp })
       .where(eq(schema.repos.id, repo.id));
   }
 
-  // Check for stale running jobs (past deadline)
   const staleJobs = await db
     .select()
     .from(schema.jobs)
@@ -90,7 +112,6 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
       job_id: job.id,
       deadline_at: job.deadline_at,
     });
-    // Treat as failed callback
     await db
       .update(schema.jobs)
       .set({

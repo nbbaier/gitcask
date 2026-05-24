@@ -157,6 +157,15 @@ app.post("/:id/complete", async (c) => {
           timestamp,
         })
       );
+
+      await db
+        .update(schema.repos)
+        .set({
+          last_pushed_at: payload.pushed_at ?? repo.last_pushed_at,
+          last_backup_at: timestamp,
+          updated_at: timestamp,
+        })
+        .where(eq(schema.repos.id, job.repo_id));
     }
 
     return c.json({ status: "completed" });

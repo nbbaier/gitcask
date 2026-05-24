@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
+import { validateGitHubRepoAccess } from "../lib/github.ts";
 import { generateId, now } from "../lib/id.ts";
 import type { Env } from "../types.ts";
 
@@ -38,22 +39,16 @@ app.post("/", async (c) => {
     return c.json({ error: "Repo already exists", id: existing.id }, 409);
   }
 
-  // Validate repo exists and PAT has access
-  const ghRes = await fetch(
-    `https://api.github.com/repos/${body.owner}/${body.name}`,
-    {
-      headers: {
-        Authorization: `Bearer ${c.env.GITHUB_PAT}`,
-        "User-Agent": "gitcask/1.0",
-        Accept: "application/vnd.github+json",
-      },
-    }
+  const ghAccess = await validateGitHubRepoAccess(
+    body.owner,
+    body.name,
+    c.env.GITHUB_PAT
   );
 
-  if (!ghRes.ok) {
+  if (!ghAccess.ok) {
     return c.json(
       {
-        error: `GitHub repo not accessible: ${ghRes.status} ${ghRes.statusText}`,
+        error: `GitHub repo not accessible: ${ghAccess.status} ${ghAccess.statusText}`,
       },
       422
     );
@@ -169,8 +164,9 @@ app.get("/", async (c) => {
 app.patch("/:id", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json<{
-    interval_minutes?: number;
     enabled?: boolean;
+    interval_minutes?: number;
+    min_full_backup_days?: number;
   }>();
 
   const db = drizzle(c.env.DB);
@@ -195,6 +191,13 @@ app.patch("/:id", async (c) => {
 
   if (body.enabled !== undefined) {
     updates.enabled = body.enabled;
+  }
+
+  if (body.min_full_backup_days !== undefined) {
+    if (body.min_full_backup_days < 1) {
+      return c.json({ error: "min_full_backup_days must be >= 1" }, 400);
+    }
+    updates.min_full_backup_days = body.min_full_backup_days;
   }
 
   await db.update(schema.repos).set(updates).where(eq(schema.repos.id, id));

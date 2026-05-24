@@ -6,63 +6,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../src/index.ts";
 import { runRetentionCleanup } from "../src/services/retention.ts";
-
-// Helper to apply migrations
-async function applyMigrations(db: D1Database) {
-  const migration = `
-    CREATE TABLE IF NOT EXISTS repos (
-      id text PRIMARY KEY NOT NULL,
-      owner text NOT NULL,
-      name text NOT NULL,
-      interval_minutes integer DEFAULT 60 NOT NULL,
-      enabled integer DEFAULT 1 NOT NULL,
-      next_run_at text,
-      created_at text NOT NULL,
-      updated_at text NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS jobs (
-      id text PRIMARY KEY NOT NULL,
-      repo_id text NOT NULL,
-      trigger_source text NOT NULL,
-      idempotency_key text NOT NULL,
-      status text NOT NULL,
-      stage text,
-      stage_updated_at text,
-      attempt integer DEFAULT 1 NOT NULL,
-      deadline_at text,
-      created_at text NOT NULL,
-      updated_at text NOT NULL,
-      FOREIGN KEY (repo_id) REFERENCES repos(id)
-    );
-    CREATE TABLE IF NOT EXISTS runs (
-      id text PRIMARY KEY NOT NULL,
-      repo_id text NOT NULL,
-      job_id text NOT NULL,
-      status text NOT NULL,
-      started_at text NOT NULL,
-      finished_at text,
-      error text,
-      created_at text NOT NULL,
-      FOREIGN KEY (repo_id) REFERENCES repos(id),
-      FOREIGN KEY (job_id) REFERENCES jobs(id)
-    );
-    CREATE TABLE IF NOT EXISTS artifacts (
-      id text PRIMARY KEY NOT NULL,
-      run_id text NOT NULL,
-      repo_id text NOT NULL,
-      object_key text NOT NULL,
-      sha256 text NOT NULL,
-      size_bytes integer NOT NULL,
-      created_at text NOT NULL,
-      FOREIGN KEY (run_id) REFERENCES runs(id),
-      FOREIGN KEY (repo_id) REFERENCES repos(id)
-    );
-  `;
-
-  for (const stmt of migration.split(";").filter((s) => s.trim())) {
-    await db.prepare(stmt).run();
-  }
-}
+import { applyMigrations } from "./helpers/migrations.ts";
 
 function makeRequest(
   path: string,
@@ -374,7 +318,6 @@ describe("Gitcask API", () => {
 
   describe("POST /internal/jobs/:id/complete", () => {
     it("handles successful backup callback", async () => {
-      // Create a repo and job
       const repoId = crypto.randomUUID();
       const jobId = crypto.randomUUID();
       const ts = new Date().toISOString();
@@ -401,6 +344,7 @@ describe("Gitcask API", () => {
           object_key: "repos/test-owner/test-repo/snapshots/test.tar.gz",
           metadata_key:
             "repos/test-owner/test-repo/snapshots/test_metadata.json",
+          pushed_at: "2026-03-02T08:00:00.000Z",
         }),
       });
 
@@ -440,6 +384,14 @@ describe("Gitcask API", () => {
         "repos/test-owner/test-repo/latest.json"
       );
       expect(latest).not.toBeNull();
+
+      const repo = await env.DB.prepare(
+        "SELECT last_pushed_at, last_backup_at FROM repos WHERE id = ?"
+      )
+        .bind(repoId)
+        .first<{ last_backup_at: string; last_pushed_at: string }>();
+      expect(repo?.last_pushed_at).toBe("2026-03-02T08:00:00.000Z");
+      expect(repo?.last_backup_at).toBeTruthy();
     });
 
     it("handles failed callback with retry", async () => {

@@ -20,13 +20,9 @@ export async function handleQueueMessage(
     attempt,
   });
 
-  const transition = await markRunning(db, job_id, idempotency_key, attempt);
-  if (!transition.ok) {
-    console.log("[queue] skipping job", { job_id, reason: transition.reason });
-    message.ack();
-    return;
-  }
-
+  // Fetch repo before transitioning the job — a missing repo must leave
+  // the job in `queued`, never strand it in `running` waiting for the
+  // 15-minute deadline sweep to clean it up.
   const [repo] = await db
     .select()
     .from(schema.repos)
@@ -34,6 +30,13 @@ export async function handleQueueMessage(
 
   if (!repo) {
     console.log("[queue] skipping job — repo not found", { job_id, repo_id });
+    message.ack();
+    return;
+  }
+
+  const transition = await markRunning(db, job_id, idempotency_key, attempt);
+  if (!transition.ok) {
+    console.log("[queue] skipping job", { job_id, reason: transition.reason });
     message.ack();
     return;
   }

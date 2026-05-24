@@ -10,12 +10,17 @@ export async function handleQueueMessage(
   message: Message<QueueMessage>,
   env: Env
 ): Promise<void> {
-  const { job_id, repo_id, idempotency_key } = message.body;
+  const { job_id, repo_id, idempotency_key, attempt } = message.body;
   const db = drizzle(env.DB);
 
-  console.log("[queue] received message", { job_id, repo_id, idempotency_key });
+  console.log("[queue] received message", {
+    job_id,
+    repo_id,
+    idempotency_key,
+    attempt,
+  });
 
-  const transition = await markRunning(db, job_id, idempotency_key);
+  const transition = await markRunning(db, job_id, idempotency_key, attempt);
   if (!transition.ok) {
     console.log("[queue] skipping job", { job_id, reason: transition.reason });
     message.ack();

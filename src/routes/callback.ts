@@ -85,7 +85,11 @@ async function recordSuccessfulBackup(
     return;
   }
 
-  if (payload.sha256 && payload.size_bytes && payload.object_key) {
+  if (
+    payload.sha256 != null &&
+    payload.size_bytes != null &&
+    payload.object_key != null
+  ) {
     await db.insert(schema.artifacts).values({
       id: generateId(),
       run_id: result.runId,

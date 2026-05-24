@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 // biome-ignore lint/performance/noNamespaceImport: schema is consumed as a namespace
 import * as schema from "../db/schema.ts";
@@ -27,13 +27,42 @@ export type MarkRunningResult =
   | { ok: true }
   | NotFound
   | WrongStatus<"not-queued">
-  | WrongStatus<"idempotency-mismatch">;
+  | WrongStatus<"idempotency-mismatch">
+  | WrongStatus<"attempt-mismatch">;
 
 export async function markRunning(
   db: DB,
   jobId: string,
-  expectedIdempotencyKey: string
+  expectedIdempotencyKey: string,
+  expectedAttempt: number
 ): Promise<MarkRunningResult> {
+  const timestamp = now();
+
+  // Conditional UPDATE: only transitions if all preconditions still hold.
+  // Closes the SELECT-then-UPDATE race a delayed duplicate queue message
+  // could otherwise exploit.
+  const updated = await db
+    .update(schema.jobs)
+    .set({
+      status: "running",
+      deadline_at: computeDeadline(),
+      updated_at: timestamp,
+    })
+    .where(
+      and(
+        eq(schema.jobs.id, jobId),
+        eq(schema.jobs.status, "queued"),
+        eq(schema.jobs.idempotency_key, expectedIdempotencyKey),
+        eq(schema.jobs.attempt, expectedAttempt)
+      )
+    )
+    .returning({ id: schema.jobs.id });
+
+  if (updated.length > 0) {
+    return { ok: true };
+  }
+
+  // Transition didn't happen — diagnose by reading current state.
   const [job] = await db
     .select()
     .from(schema.jobs)
@@ -48,18 +77,7 @@ export async function markRunning(
   if (job.idempotency_key !== expectedIdempotencyKey) {
     return { ok: false, reason: "idempotency-mismatch" };
   }
-
-  const timestamp = now();
-  await db
-    .update(schema.jobs)
-    .set({
-      status: "running",
-      deadline_at: computeDeadline(),
-      updated_at: timestamp,
-    })
-    .where(eq(schema.jobs.id, jobId));
-
-  return { ok: true };
+  return { ok: false, reason: "attempt-mismatch" };
 }
 
 export type MarkCompletedResult =

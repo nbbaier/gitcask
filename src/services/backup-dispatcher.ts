@@ -46,7 +46,7 @@ export async function dispatch(
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok && res.status !== 202) {
+    if (!res.ok) {
       return {
         accepted: false,
         error: `Container returned ${res.status}`,

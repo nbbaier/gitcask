@@ -5,6 +5,7 @@ import * as schema from "../db/schema.ts";
 import { generateId, now } from "../lib/id.ts";
 import type { Env, QueueMessage } from "../types.ts";
 import { checkScheduledBackup } from "./change-detection.ts";
+import { markFailedByDeadline } from "./job-lifecycle.ts";
 
 function advanceNextRunAt(
   repo: { interval_minutes: number },
@@ -112,25 +113,12 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
       job_id: job.id,
       deadline_at: job.deadline_at,
     });
-    await db
-      .update(schema.jobs)
-      .set({
-        status: "failed",
-        stage: null,
-        stage_updated_at: null,
-        updated_at: timestamp,
-      })
-      .where(eq(schema.jobs.id, job.id));
-
-    await db.insert(schema.runs).values({
-      id: generateId(),
-      repo_id: job.repo_id,
-      job_id: job.id,
-      status: "failed",
-      started_at: job.created_at,
-      finished_at: timestamp,
-      error: "Job exceeded deadline without callback",
-      created_at: timestamp,
-    });
+    const result = await markFailedByDeadline(db, job.id);
+    if (!result.ok) {
+      console.log("[scheduler] could not mark stale job failed", {
+        job_id: job.id,
+        reason: result.reason,
+      });
+    }
   }
 }

@@ -53,6 +53,21 @@ describe("Gitcask API", () => {
     });
   });
 
+  describe("GET /", () => {
+    it("returns the landing page without auth", async () => {
+      const req = new Request("http://localhost/");
+      const ctx = createExecutionContext();
+      const res = await worker.fetch(req, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/html");
+      const body = await res.text();
+      expect(body).toContain("the repo");
+      expect(body).toContain("gitcask");
+    });
+  });
+
   describe("Auth", () => {
     it("rejects requests without auth token", async () => {
       const req = makeRequest("/repos", { method: "GET" }, "");

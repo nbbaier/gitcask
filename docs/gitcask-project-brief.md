@@ -17,7 +17,7 @@ Explicitly **not** the goal: a feature-complete SaaS, billing, multi-tenant poli
 ## Where things stand (as of June 18)
 
 - **Phase 1 (into-md): DONE and shipped.** Live on npm at 1.0.1 — 39→74 tests, a real bug fixed, CI, MIT license, clean dist-only package, GitHub release with notes. This was the "guaranteed win" half of a deliberate barbell strategy, and it's banked. June 30 already has a finished, defensible, shipped tool on it.
-- **Phase 2 (gitcask): NOT STARTED.** That's on schedule — it was never meant to begin before the state review. Its true state is UNKNOWN until `gitcask-state-review.md` lands.
+- **Phase 2 (gitcask): NOT STARTED.** That's on schedule — it was never meant to begin before the state review. Its true state is UNKNOWN until `docs/gitcask-state-review.md` lands.
 - **Time left:** ~12 days. **Capacity:** ~4 hrs/day.
 
 ## Strategy & guardrails (why gitcask, and how it goes wrong)
@@ -56,6 +56,6 @@ Suggested overall shape (to be dated and refined here):
 
 ## First tasks for this project
 
-1. Read `gitcask-state-review.md`.
+1. Read `docs/gitcask-state-review.md`.
 2. Lock the definition of done: the one demo path + the out-of-scope list.
 3. Produce the dated plan from today → June 30 at ~4 hrs/day, including the June 25 go/no-go checkpoint.

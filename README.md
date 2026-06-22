@@ -57,10 +57,10 @@ Start the container service and worker in two separate terminals:
 
 ```bash
 # Terminal 1 — container backup service (port 8788)
-cd container && bun run server.ts
+cd container && bun ./server.ts
 
 # Terminal 2 — Cloudflare Worker (port 8787)
-bun run dev
+cd .. && bun run dev
 ```
 
 ### Test the API
@@ -96,11 +96,22 @@ bun run test
 
 Tests use Miniflare for local emulation — no real Cloudflare services needed.
 
+### Check code quality
+
+```bash
+bun run check    # lint and type check
+bun run fix      # auto-fix issues
+```
+
+Note: There is a known lint issue in `test/env.d.ts` (namespace declaration). This does not block development but should be resolved before deployment.
+
 ### Notes
 
 - **Cron triggers** don't fire automatically in `wrangler dev`. You can test the scheduler manually via `curl http://localhost:8787/__scheduled`.
 - **Queue processing** is emulated locally by Miniflare.
 - **Full end-to-end testing** (container cloning a repo and uploading to R2) requires real R2 API credentials and a valid GitHub PAT.
+- **Current implementation status:** The control plane (repo registration, scheduling, job tracking) is functional. The backup execution path (clone → archive → upload → callback) is implemented but unverified without live Cloudflare/GitHub/R2 credentials.
+- **Planned features not yet implemented:** Download/restore endpoints, artifact queryability beyond run details, and restore verification.
 
 ## Scripts
 
@@ -117,20 +128,24 @@ Tests use Miniflare for local emulation — no real Cloudflare services needed.
 
 ## Production Deployment
 
-### 1. Create Cloudflare resources
+### 1. Verify Cloudflare resources exist
+
+The following resources are already configured in `wrangler.jsonc`:
+
+- **D1 database:** `gitcask-db` (id: `8fb034f5-4e68-4f19-adad-b112ec374e00`)
+- **R2 bucket:** `gitcask-backups`
+- **Queue:** `gitcask-jobs`
+- **Container:** `gitcask-backup`
+
+If these resources don't exist in your Cloudflare account, create them:
 
 ```bash
-# Create the D1 database
 bunx wrangler d1 create gitcask-db
-
-# Create the R2 bucket
 bunx wrangler r2 bucket create gitcask-backups
-
-# Create the queue
 bunx wrangler queues create gitcask-jobs
 ```
 
-After creating the D1 database, copy the returned `database_id` and update `wrangler.jsonc` — the current value (`"gitcask-db-id"`) is a placeholder.
+Update the `database_id` in `wrangler.jsonc` if you created a new D1 database.
 
 ### 2. Set production secrets
 
@@ -142,21 +157,21 @@ bunx wrangler secret put R2_SECRET_ACCESS_KEY
 bunx wrangler secret put R2_ENDPOINT
 ```
 
-### 3. Update production environment variables
+### 3. Update production environment variables (if needed)
 
-The `env.production` section in `wrangler.jsonc` overrides `WORKER_URL` for production. Update it to match your Workers subdomain:
+The `env.production` section in `wrangler.jsonc` specifies the production `WORKER_URL`:
 
 ```jsonc
 "env": {
   "production": {
     "vars": {
-      "WORKER_URL": "https://gitcask.<your-subdomain>.workers.dev"
+      "WORKER_URL": "https://gitcask-production.nico-baier.workers.dev"
     }
   }
 }
 ```
 
-The container service is accessed via a Cloudflare Container binding (`CONTAINER`), so no URL configuration is needed for it.
+Update this to match your Workers subdomain if deploying to a different account. The container service is accessed via a Cloudflare Container binding (`CONTAINER`), so no separate URL configuration is needed for it.
 
 ### 4. Run D1 migrations remotely
 

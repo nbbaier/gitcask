@@ -21,7 +21,7 @@ app.get("/", (c) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>gitcask - GitHub backups with a filesystem interface</title>
+    <title>gitcask - automated GitHub repository mirroring on Cloudflare</title>
     <meta
       name="description"
       content="Automated GitHub repository backups powered by Cloudflare Workers, D1, R2, and Queues."
@@ -353,16 +353,16 @@ app.get("/", (c) => {
 
       <section class="hero section">
         <div class="hero-copy">
-          <div class="eyebrow">Back up GitHub like a filesystem</div>
+          <div class="eyebrow">Mirror your GitHub repos to infrastructure you control</div>
           <h1>
-            <span class="headline-mark">the repo</span><br />
-            <span class="headline-mark">is the API.</span>
+            <span class="headline-mark">your repos,</span><br />
+            <span class="headline-mark">your edge.</span>
           </h1>
           <p class="lede">
-            gitcask turns GitHub repositories into durable, queryable backup
-            targets. Cloudflare Workers handles orchestration, D1 stores state,
-            R2 keeps the payloads, and queues move work without the usual backup
-            glue.
+            gitcask automatically mirrors your GitHub repositories to your own
+            Cloudflare R2 storage. Workers handle orchestration, D1 tracks
+            state, R2 keeps the mirror, and queues move the work — a backup that
+            lives on infrastructure you own.
           </p>
           <div class="actions">
             <a class="button primary" href="#install">Get started</a>
@@ -385,15 +385,15 @@ app.get("/", (c) => {
         </div>
         <div class="hero-panel">
           <div class="card">
-            <div class="kicker">Install</div>
-            <pre class="code">curl -fsSL https://install.gitcask.dev | sh</pre>
+            <div class="kicker">Deploy your own</div>
+            <pre class="code">bun install &amp;&amp; bunx wrangler deploy</pre>
           </div>
           <div class="card">
             <div class="kicker">What it buys you</div>
             <p class="lede" style="margin: 12px 0 0;">
-              Every repo backup is tracked as a job, every run has history, and
-              restores can be reasoned about with the same primitives your
-              agents already use: files, paths, and diffs.
+              Every backup is tracked as a job, every run keeps its history, and
+              every artifact is checksummed in R2 — so you can see exactly what
+              was mirrored and when.
             </p>
           </div>
         </div>
@@ -403,7 +403,7 @@ app.get("/", (c) => {
         <div class="section-grid">
           <div class="section-heading">
             <div class="eyebrow">How it works</div>
-            <h2 class="section-title">Treat backups like a filesystem, not a dashboard.</h2>
+            <h2 class="section-title">A real job lifecycle, not a black-box cron.</h2>
           </div>
           <div class="section-body">
             <div class="feature-list">
@@ -429,10 +429,10 @@ app.get("/", (c) => {
                 </p>
               </article>
               <article class="feature">
-                <h3>Filesystem mental model</h3>
+                <h3>Change detection</h3>
                 <p>
-                  Paths, files, and repositories are first-class. That keeps the
-                  interface understandable for humans and automation alike.
+                  Scheduled backups skip unchanged repos using GitHub's push
+                  timestamps, so you only store what actually moved.
                 </p>
               </article>
             </div>
@@ -449,24 +449,24 @@ app.get("/", (c) => {
           <div class="section-body">
             <div class="feature-list">
               <article class="feature">
-                <h3>Shared agent state</h3>
+                <h3>Off-GitHub copy</h3>
                 <p>
-                  Let multiple agents work against the same repository snapshot
-                  without stepping on each other.
+                  If GitHub is down or an account is locked, your mirror still
+                  lives in your own R2 bucket.
                 </p>
               </article>
               <article class="feature">
-                <h3>Local-first mirrors</h3>
+                <h3>Own your infrastructure</h3>
                 <p>
-                  Mirror repos into a stable filesystem surface for inspection,
-                  scripting, or offline work.
+                  Your repos sit in R2 in your Cloudflare account — not a
+                  third-party backup vendor's.
                 </p>
               </article>
               <article class="feature">
-                <h3>Recovery workflows</h3>
+                <h3>Hands-off &amp; scheduled</h3>
                 <p>
-                  Keep clean run history and stored artifacts so rollback and
-                  recovery are operationally boring.
+                  Point gitcask at a repo and it re-mirrors on your interval
+                  whenever the repo changes.
                 </p>
               </article>
               <article class="feature" id="install">

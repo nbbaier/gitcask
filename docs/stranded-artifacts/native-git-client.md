@@ -68,9 +68,12 @@ depend on CPU-heavy `.idx` generation or tar materialization.
 
 ## Why This Matters For Plan 009
 
-[plans/009-restore-read-api-spike.md](../../plans/009-restore-read-api-spike.md)
-focuses on exposing the artifacts gitcask already writes. Before a later
-download/restore implementation, the project should decide:
+The archived
+[restore/read API spike](./outdated/plans/009-restore-read-api-spike.md) focuses
+on exposing the artifacts gitcask already writes. Its read surface remains a
+Phase 1 input, but the newer roadmap selects Cloudflare Artifacts for the v1
+clone-serving engine. Treat the questions below as fallback-engine research,
+not decisions that block the Phase 1 read surface:
 
 - Is `tar.gz` the canonical artifact or just the user-facing artifact?
 - Does each backup need a precomputed tarball checksum?
@@ -114,4 +117,3 @@ Scope constraints from the spike:
 Do not replace the container as part of the first backup-visibility pass.
 Use this artifact to keep restore/download decisions from baking in a storage
 layout that blocks a packfile-native future.
-

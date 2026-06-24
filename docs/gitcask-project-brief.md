@@ -36,8 +36,8 @@ Treat everything here as unconfirmed until `gitcask-state-review.md` says otherw
 
 ## The timeline skeleton (finalize this in the project)
 
-The first move is **the spike**, not coding: read `gitcask-state-review.md`, then lock the ONE demo path and write an explicit out-of-scope list. That document is the single highest-leverage thing on the board — it's what stops scope creep from eating the month.
-
+**The first move is **the spike**, not coding: read `gitcask-state-review.md`, then lock the ONE demo path and write an explicit out-of-scope list. That document is the single highest-leverage thing on the board — it's what stops scope creep from eating the month.
+**
 Suggested overall shape (to be dated and refined here):
 
 1. **Spike** — pick the one demo path; freeze scope (in/out lists).

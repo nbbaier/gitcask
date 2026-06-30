@@ -29,14 +29,24 @@ app.get("/", (c) => {
     <style>
       :root {
         color-scheme: light;
-        --bg: #f3ecdf;
-        --bg-elevated: #f8f2e6;
-        --ink: #171410;
-        --muted: #5f584d;
-        --line: rgba(23, 20, 16, 0.18);
-        --accent: #171410;
-        --accent-soft: rgba(23, 20, 16, 0.08);
-        --shadow: 0 18px 60px rgba(23, 20, 16, 0.08);
+        --bg: #ffffff;
+        --bg-soft: #f7f7f8;
+        --bg-panel: #ffffff;
+        --ink: #11150f;
+        --ink-2: #2b2f2a;
+        --muted: #6a6f76;
+        --line: #e6e7ea;
+        --line-strong: #d6d8dd;
+        --accent: #f6821f;
+        --accent-ink: #b75c08;
+        --accent-soft: #fff4e8;
+        --accent-line: #f7c79a;
+        --radius: 14px;
+        --radius-lg: 20px;
+        --shadow-sm: 0 1px 2px rgba(17, 21, 15, 0.06);
+        --shadow: 0 10px 30px rgba(17, 21, 15, 0.06), 0 2px 8px rgba(17, 21, 15, 0.04);
+        --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
       }
 
       * {
@@ -49,11 +59,11 @@ app.get("/", (c) => {
 
       body {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
+        font-family: var(--sans);
         color: var(--ink);
-        background:
-          radial-gradient(circle at top left, rgba(255, 255, 255, 0.4), transparent 40%),
-          linear-gradient(180deg, #f7f1e6 0%, var(--bg) 100%);
+        background: var(--bg);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
       }
 
       a {
@@ -62,311 +72,448 @@ app.get("/", (c) => {
       }
 
       .shell {
-        max-width: 1240px;
+        max-width: 1140px;
         margin: 0 auto;
-        padding: 24px;
+        padding: 0 24px;
       }
 
-      .topbar,
-      .section,
-      .footer {
-        border: 1px solid var(--line);
-        background: rgba(248, 242, 230, 0.7);
-        backdrop-filter: blur(10px);
-      }
-
+      /* ---------- top bar ---------- */
       .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 18px 22px;
-      }
-
-      .brand,
-      .nav,
-      .meta,
-      .eyebrow,
-      .kicker,
-      .stat-label {
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        font-size: 11px;
+        padding: 16px 24px;
+        max-width: 1140px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: saturate(180%) blur(12px);
+        border-bottom: 1px solid transparent;
       }
 
       .brand {
-        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 650;
+        font-size: 17px;
+        letter-spacing: -0.01em;
+      }
+
+      .brand .dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 3px;
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-soft);
       }
 
       .nav {
         display: flex;
-        gap: 18px;
+        align-items: center;
+        gap: 26px;
+      }
+
+      .nav a {
+        font-size: 14.5px;
         color: var(--muted);
+        font-weight: 500;
+        transition: color 0.15s ease;
       }
 
-      .hero {
-        display: grid;
-        grid-template-columns: 1.15fr 0.85fr;
-        gap: 0;
-        min-height: 72vh;
-      }
-
-      .hero-copy {
-        padding: clamp(28px, 4vw, 56px);
-        border-right: 1px solid var(--line);
-      }
-
-      .eyebrow {
-        color: var(--muted);
-        margin-bottom: 28px;
-      }
-
-      h1,
-      h2,
-      h3 {
-        margin: 0;
-        line-height: 0.95;
-        letter-spacing: -0.05em;
-      }
-
-      h1 {
-        font-size: clamp(4.4rem, 11vw, 8.6rem);
-        max-width: 9ch;
-      }
-
-      .headline-mark {
-        display: inline-block;
-        padding: 0.05em 0.18em 0.14em;
-        background: var(--accent);
-        color: #f6efe3;
-        box-shadow: var(--shadow);
-      }
-
-      .lede {
-        margin-top: 28px;
-        max-width: 46ch;
-        font-size: 1.08rem;
-        line-height: 1.65;
-        color: var(--muted);
-      }
-
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 28px;
+      .nav a:hover {
+        color: var(--ink);
       }
 
       .button {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        min-height: 48px;
-        padding: 0 18px;
-        border: 1px solid var(--accent);
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        font-size: 0.82rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        transition:
-          transform 180ms ease,
-          background-color 180ms ease,
-          color 180ms ease;
+        gap: 7px;
+        font-family: inherit;
+        font-size: 14.5px;
+        font-weight: 600;
+        padding: 9px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--line-strong);
+        background: var(--bg);
+        color: var(--ink);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
       }
 
       .button:hover {
-        transform: translateY(-1px);
+        border-color: #c4c7cd;
+        box-shadow: var(--shadow-sm);
       }
 
       .button.primary {
         background: var(--accent);
-        color: #f7f0e4;
+        border-color: var(--accent);
+        color: #fff;
       }
 
-      .button.secondary {
-        background: transparent;
+      .button.primary:hover {
+        background: #ea7a17;
+        border-color: #ea7a17;
+        box-shadow: 0 6px 18px rgba(246, 130, 31, 0.32);
       }
 
-      .hero-panel {
+      .nav-cta {
+        font-size: 14px;
+        padding: 8px 14px;
+      }
+
+      /* ---------- hero ---------- */
+      .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 56px;
+        align-items: center;
+        padding: 76px 0 64px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
+        padding: 5px 12px;
+        border-radius: 999px;
+        margin-bottom: 22px;
+      }
+
+      h1 {
+        font-size: clamp(40px, 6vw, 62px);
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        margin: 0 0 20px;
+        font-weight: 700;
+      }
+
+      h1 .grad {
+        background: linear-gradient(92deg, var(--accent) 0%, #ff9d3f 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .lede {
+        font-size: 18px;
+        color: var(--ink-2);
+        max-width: 34ch;
+        margin: 0 0 30px;
+      }
+
+      .actions {
         display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        gap: 24px;
-        padding: clamp(28px, 4vw, 56px);
+        gap: 12px;
+        margin-bottom: 36px;
       }
 
-      .card {
-        border: 1px solid var(--line);
-        background: rgba(255, 255, 255, 0.28);
-        padding: 18px;
-      }
-
-      .code {
-        margin: 0;
-        overflow-x: auto;
-        padding: 18px;
-        border: 1px solid var(--line);
-        background: rgba(23, 20, 16, 0.04);
-        font-family: "SFMono-Regular", ui-monospace, "Cascadia Code", monospace;
-        font-size: 0.86rem;
-        line-height: 1.7;
-        white-space: pre-wrap;
+      .actions .button {
+        padding: 12px 20px;
+        font-size: 15px;
+        border-radius: 12px;
       }
 
       .stats {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 16px;
-        padding-top: 24px;
+        display: flex;
+        gap: 30px;
       }
 
-      .stat {
-        border-top: 1px solid var(--line);
-        padding-top: 16px;
+      .stat-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        font-weight: 600;
+        margin-bottom: 2px;
       }
 
       .stat-value {
-        font-size: clamp(1.6rem, 3vw, 2.4rem);
-        font-weight: 700;
-        letter-spacing: -0.05em;
+        font-size: 20px;
+        font-weight: 680;
+        letter-spacing: -0.01em;
       }
 
-      .section {
-        border-top: none;
-        padding: 0;
-      }
-
-      .section-grid {
+      /* ---------- hero panel ---------- */
+      .hero-panel {
         display: grid;
-        grid-template-columns: 0.8fr 1.2fr;
+        gap: 16px;
       }
 
-      .section-heading {
-        padding: 28px;
-        border-right: 1px solid var(--line);
+      .card {
+        background: var(--bg-panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        padding: 22px;
+        box-shadow: var(--shadow);
       }
 
-      .section-body {
-        padding: 28px;
+      .kicker {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        font-weight: 650;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-bottom: 14px;
+      }
+
+      .kicker::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      .terminal {
+        font-family: var(--mono);
+        font-size: 13.5px;
+        background: #14110d;
+        color: #f4ede2;
+        border-radius: 12px;
+        padding: 16px 18px;
+        overflow-x: auto;
+      }
+
+      .terminal .prompt {
+        color: var(--accent);
+        user-select: none;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--ink-2);
+        font-size: 14.5px;
+      }
+
+      /* ---------- architecture diagram ---------- */
+      .pipeline {
+        padding: 14px 0 8px;
+      }
+
+      .pipe-flow {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        flex-wrap: wrap;
+      }
+
+      .node {
+        flex: 1 1 0;
+        min-width: 150px;
+        background: var(--bg-panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 16px 16px 18px;
+        box-shadow: var(--shadow-sm);
+        position: relative;
+      }
+
+      .node .svc {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--accent-ink);
+        margin-bottom: 6px;
+        font-family: var(--mono);
+      }
+
+      .node .title {
+        font-weight: 640;
+        font-size: 15px;
+        margin-bottom: 4px;
+      }
+
+      .node .desc {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .arrow {
+        flex: 0 0 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+        font-size: 18px;
+      }
+
+      .pipe-base {
+        margin-top: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13.5px;
+        color: var(--muted);
+        background: var(--bg-soft);
+        border: 1px dashed var(--line-strong);
+        border-radius: var(--radius);
+        padding: 12px 16px;
+      }
+
+      .pipe-base b {
+        color: var(--ink);
+        font-family: var(--mono);
+        font-size: 12.5px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+      }
+
+      /* ---------- sections ---------- */
+      .section {
+        padding: 70px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .section-head {
+        max-width: 640px;
+        margin-bottom: 40px;
+      }
+
+      .section-eyebrow {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent-ink);
+        margin-bottom: 12px;
       }
 
       .section-title {
-        font-size: clamp(2.2rem, 4vw, 4rem);
-        max-width: 10ch;
+        font-size: clamp(26px, 3.4vw, 36px);
+        line-height: 1.12;
+        letter-spacing: -0.02em;
+        margin: 0;
+        font-weight: 700;
       }
 
-      .feature-list {
+      .grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 16px;
       }
 
       .feature {
-        padding: 20px;
+        background: var(--bg-panel);
         border: 1px solid var(--line);
-        min-height: 160px;
-        background: rgba(255, 255, 255, 0.18);
+        border-radius: var(--radius);
+        padding: 24px;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+      }
+
+      .feature:hover {
+        border-color: var(--accent-line);
+        box-shadow: var(--shadow);
+        transform: translateY(-2px);
+      }
+
+      .feature .ficon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent-line);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        color: var(--accent-ink);
+      }
+
+      .ficon svg {
+        width: 20px;
+        height: 20px;
       }
 
       .feature h3 {
-        font-size: 1.3rem;
-        margin-bottom: 12px;
+        font-size: 16.5px;
+        margin: 0 0 8px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
       }
 
       .feature p {
         margin: 0;
+        font-size: 14.5px;
         color: var(--muted);
-        line-height: 1.6;
       }
 
+      /* ---------- footer ---------- */
       .footer {
+        border-top: 1px solid var(--line);
+        padding: 30px 0;
         display: flex;
+        align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 22px;
+        color: var(--muted);
+        font-size: 14px;
       }
 
-      .footer a {
+      .footer .nav a {
         color: var(--muted);
       }
 
-      @media (max-width: 960px) {
-        .hero,
-        .section-grid,
-        .feature-list,
-        .stats {
+      @media (max-width: 880px) {
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 36px;
+          padding: 44px 0;
+        }
+        .nav {
+          display: none;
+        }
+        .grid {
           grid-template-columns: 1fr;
         }
-
-        .hero-copy {
-          border-right: none;
-          border-bottom: 1px solid var(--line);
+        .arrow {
+          flex-basis: 100%;
+          transform: rotate(90deg);
+          padding: 4px 0;
         }
-
-        .section-heading {
-          border-right: none;
-          border-bottom: 1px solid var(--line);
-        }
-      }
-
-      @media (max-width: 640px) {
-        .shell {
-          padding: 12px;
-        }
-
-        .topbar,
-        .hero-copy,
-        .hero-panel,
-        .section-heading,
-        .section-body,
-        .footer {
-          padding: 18px;
-        }
-
-        h1 {
-          font-size: clamp(3.4rem, 18vw, 5.2rem);
-        }
-
-        .nav {
-          gap: 10px;
-        }
-
         .footer {
           flex-direction: column;
+          gap: 12px;
         }
       }
     </style>
   </head>
   <body>
-    <main class="shell">
-      <header class="topbar">
-        <div class="brand">gitcask</div>
-        <nav class="nav" aria-label="Primary">
-          <a href="#how-it-works">How it works</a>
-          <a href="#use-cases">Use cases</a>
-          <a href="/health">Health</a>
-        </nav>
-        <a class="button secondary" href="#install">Install</a>
-      </header>
+    <header class="topbar">
+      <a class="brand" href="/"><span class="dot"></span>gitcask</a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#how-it-works">How it works</a>
+        <a href="#use-cases">Use cases</a>
+        <a href="/health">Health</a>
+      </nav>
+      <a class="button primary nav-cta" href="#install">Deploy</a>
+    </header>
 
-      <section class="hero section">
+    <main class="shell">
+      <section class="hero">
         <div class="hero-copy">
-          <div class="eyebrow">Mirror your GitHub repos to infrastructure you control</div>
-          <h1>
-            <span class="headline-mark">your repos,</span><br />
-            <span class="headline-mark">your edge.</span>
-          </h1>
+          <span class="eyebrow">Mirror your GitHub repos to infrastructure you control</span>
+          <h1>Your repos,<br /><span class="grad">your edge.</span></h1>
           <p class="lede">
             gitcask automatically mirrors your GitHub repositories to your own
-            Cloudflare R2 storage. Workers handle orchestration, D1 tracks
-            state, R2 keeps the mirror, and queues move the work — a backup that
-            lives on infrastructure you own.
+            Cloudflare R2 storage — a backup that lives on infrastructure you own.
           </p>
           <div class="actions">
-            <a class="button primary" href="#install">Get started</a>
-            <a class="button secondary" href="#use-cases">View use cases</a>
+            <a class="button primary" href="#install">Get started &rarr;</a>
+            <a class="button" href="#use-cases">View use cases</a>
           </div>
           <div class="stats" aria-label="Highlights">
             <div class="stat">
@@ -386,11 +533,11 @@ app.get("/", (c) => {
         <div class="hero-panel">
           <div class="card" id="install">
             <div class="kicker">Deploy your own</div>
-            <pre class="code">bun install &amp;&amp; bunx wrangler deploy</pre>
+            <pre class="terminal"><span class="prompt">$</span> bun install &amp;&amp; bunx wrangler deploy</pre>
           </div>
           <div class="card">
             <div class="kicker">What it buys you</div>
-            <p class="lede" style="margin: 12px 0 0;">
+            <p>
               Every backup is tracked as a job, every run keeps its history, and
               every artifact is checksummed in R2 — so you can see exactly what
               was mirrored and when.
@@ -399,96 +546,103 @@ app.get("/", (c) => {
         </div>
       </section>
 
+      <section class="pipeline">
+        <div class="pipe-flow">
+          <div class="node">
+            <div class="svc">github</div>
+            <div class="title">Your repository</div>
+            <div class="desc">Source of truth, polled on your schedule.</div>
+          </div>
+          <div class="arrow" aria-hidden="true">&rarr;</div>
+          <div class="node">
+            <div class="svc">worker + queues</div>
+            <div class="title">Orchestration</div>
+            <div class="desc">Schedules, dispatches, and completes backup jobs.</div>
+          </div>
+          <div class="arrow" aria-hidden="true">&rarr;</div>
+          <div class="node">
+            <div class="svc">container</div>
+            <div class="title">Clone &amp; upload</div>
+            <div class="desc">Isolated execution clones the repo and pushes it up.</div>
+          </div>
+          <div class="arrow" aria-hidden="true">&rarr;</div>
+          <div class="node">
+            <div class="svc">r2</div>
+            <div class="title">Your mirror</div>
+            <div class="desc">Checksummed artifacts in a bucket you own.</div>
+          </div>
+        </div>
+        <div class="pipe-base">
+          <span>State tracked in <b>D1</b> — every job, run, and artifact recorded as a real lifecycle.</span>
+        </div>
+      </section>
+
       <section id="how-it-works" class="section">
-        <div class="section-grid">
-          <div class="section-heading">
-            <div class="eyebrow">How it works</div>
-            <h2 class="section-title">A real job lifecycle, not a black-box cron.</h2>
-          </div>
-          <div class="section-body">
-            <div class="feature-list">
-              <article class="feature">
-                <h3>Atomic job flow</h3>
-                <p>
-                  Schedule, dispatch, and complete backup jobs with explicit
-                  state transitions. Nothing relies on best effort polling.
-                </p>
-              </article>
-              <article class="feature">
-                <h3>Versioned runs</h3>
-                <p>
-                  Every backup run is preserved with timestamps, status, and
-                  error context for postmortems or replays.
-                </p>
-              </article>
-              <article class="feature">
-                <h3>Queue-backed execution</h3>
-                <p>
-                  The worker orchestrates work, while the container handles
-                  cloning and upload work with the right isolation boundary.
-                </p>
-              </article>
-              <article class="feature">
-                <h3>Change detection</h3>
-                <p>
-                  Scheduled backups skip unchanged repos using GitHub's push
-                  timestamps, so you only store what actually moved.
-                </p>
-              </article>
-            </div>
-          </div>
+        <div class="section-head">
+          <div class="section-eyebrow">How it works</div>
+          <h2 class="section-title">A real job lifecycle, not a black-box cron.</h2>
+        </div>
+        <div class="grid">
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1.5"/><rect x="15" y="15" width="6" height="6" rx="1.5"/><path d="M9 6h6a3 3 0 0 1 3 3v6"/></svg></div>
+            <h3>Atomic job flow</h3>
+            <p>Schedule, dispatch, and complete backup jobs with explicit state transitions. Nothing relies on best-effort polling.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/><path d="M12 8v4l3 2"/></svg></div>
+            <h3>Versioned runs</h3>
+            <p>Every backup run is preserved with timestamps, status, and error context for postmortems or replays.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></div>
+            <h3>Queue-backed execution</h3>
+            <p>The worker orchestrates work, while the container handles cloning and upload with the right isolation boundary.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg></div>
+            <h3>Change detection</h3>
+            <p>Scheduled backups skip unchanged repos using GitHub's push timestamps, so you only store what actually moved.</p>
+          </article>
         </div>
       </section>
 
       <section id="use-cases" class="section">
-        <div class="section-grid">
-          <div class="section-heading">
-            <div class="eyebrow">Use cases</div>
-            <h2 class="section-title">Reasons to keep a mirror you control.</h2>
-          </div>
-          <div class="section-body">
-            <div class="feature-list">
-              <article class="feature">
-                <h3>Off-GitHub copy</h3>
-                <p>
-                  If GitHub is down or an account is locked, your mirror still
-                  lives in your own R2 bucket.
-                </p>
-              </article>
-              <article class="feature">
-                <h3>Own your infrastructure</h3>
-                <p>
-                  Your repos sit in R2 in your Cloudflare account — not a
-                  third-party backup vendor's.
-                </p>
-              </article>
-              <article class="feature">
-                <h3>Hands-off &amp; scheduled</h3>
-                <p>
-                  Point gitcask at a repo and it re-mirrors on your interval
-                  whenever the repo changes.
-                </p>
-              </article>
-              <article class="feature">
-                <h3>Quick setup</h3>
-                <p>
-                  Cloudflare Workers, D1, R2, and Queues are the only moving
-                  parts. The rest is a straightforward admin API.
-                </p>
-              </article>
-            </div>
-          </div>
+        <div class="section-head">
+          <div class="section-eyebrow">Use cases</div>
+          <h2 class="section-title">Reasons to keep a mirror you control.</h2>
+        </div>
+        <div class="grid">
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.4 3.9 5.6 3.9 9s-1.4 6.6-3.9 9c-2.5-2.4-3.9-5.6-3.9-9s1.4-6.6 3.9-9Z"/></svg></div>
+            <h3>Off-GitHub copy</h3>
+            <p>If GitHub is down or an account is locked, your mirror still lives in your own R2 bucket.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg></div>
+            <h3>Own your infrastructure</h3>
+            <p>Your repos sit in R2 in your Cloudflare account — not a third-party backup vendor's.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+            <h3>Hands-off &amp; scheduled</h3>
+            <p>Point gitcask at a repo and it re-mirrors on your interval whenever the repo changes.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg></div>
+            <h3>Quick setup</h3>
+            <p>Cloudflare Workers, D1, R2, and Queues are the only moving parts. The rest is a straightforward admin API.</p>
+          </article>
         </div>
       </section>
-
-      <footer class="footer">
-        <div class="meta">gitcask</div>
-        <div class="nav">
-          <a href="/health">Health</a>
-          <a href="/repos">API</a>
-        </div>
-      </footer>
     </main>
+
+    <footer class="footer shell">
+      <div class="brand"><span class="dot"></span>gitcask</div>
+      <div class="nav">
+        <a href="/health">Health</a>
+        <a href="/repos">API</a>
+      </div>
+    </footer>
   </body>
 </html>`;
 

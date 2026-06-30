@@ -4,7 +4,8 @@
     "container/server.ts",
     "scripts/*.ts",
     "test/**/*.test.ts",
-    "*.config.ts"
+    "*.config.ts",
+    "src/index.ts"
   ],
   "project": [
     "src/**/*.ts",

@@ -76,6 +76,24 @@ describe("Gitcask API", () => {
       await waitOnExecutionContext(ctx);
 
       expect(res.status).toBe(401);
+      await expect(res.json()).resolves.toEqual({ error: "Unauthorized" });
+    });
+
+    it("rejects malformed auth headers with the same response body", async () => {
+      const req = makeRequest(
+        "/repos",
+        {
+          headers: { Authorization: "Basic wrong-token" },
+          method: "GET",
+        },
+        ""
+      );
+      const ctx = createExecutionContext();
+      const res = await worker.fetch(req, env, ctx);
+      await waitOnExecutionContext(ctx);
+
+      expect(res.status).toBe(401);
+      await expect(res.json()).resolves.toEqual({ error: "Unauthorized" });
     });
 
     it("rejects requests with invalid token", async () => {
@@ -85,6 +103,7 @@ describe("Gitcask API", () => {
       await waitOnExecutionContext(ctx);
 
       expect(res.status).toBe(401);
+      await expect(res.json()).resolves.toEqual({ error: "Unauthorized" });
     });
   });
 

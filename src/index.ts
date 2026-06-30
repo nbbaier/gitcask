@@ -384,7 +384,7 @@ app.get("/", (c) => {
           </div>
         </div>
         <div class="hero-panel">
-          <div class="card">
+          <div class="card" id="install">
             <div class="kicker">Deploy your own</div>
             <pre class="code">bun install &amp;&amp; bunx wrangler deploy</pre>
           </div>
@@ -444,7 +444,7 @@ app.get("/", (c) => {
         <div class="section-grid">
           <div class="section-heading">
             <div class="eyebrow">Use cases</div>
-            <h2 class="section-title">Built for people who think in trees, not tickets.</h2>
+            <h2 class="section-title">Reasons to keep a mirror you control.</h2>
           </div>
           <div class="section-body">
             <div class="feature-list">
@@ -469,7 +469,7 @@ app.get("/", (c) => {
                   whenever the repo changes.
                 </p>
               </article>
-              <article class="feature" id="install">
+              <article class="feature">
                 <h3>Quick setup</h3>
                 <p>
                   Cloudflare Workers, D1, R2, and Queues are the only moving

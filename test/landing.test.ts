@@ -14,15 +14,22 @@ const FORBIDDEN_CLAIMS = [
   "encrypted",
   "filesystem",
   "queryable",
+  "replay",
   "install.gitcask.dev",
 ];
 
-async function fetchLanding(): Promise<{ status: number; body: string }> {
-  const req = new Request("http://localhost/");
+async function fetchPath(
+  path: string
+): Promise<{ status: number; body: string }> {
+  const req = new Request(`http://localhost${path}`);
   const ctx = createExecutionContext();
   const res = await worker.fetch(req, env, ctx);
   await waitOnExecutionContext(ctx);
   return { status: res.status, body: await res.text() };
+}
+
+function fetchLanding(): Promise<{ status: number; body: string }> {
+  return fetchPath("/");
 }
 
 describe("GET / landing page", () => {
@@ -46,6 +53,20 @@ describe("GET / landing page", () => {
     expect(anchors).toContain("install");
     for (const id of anchors) {
       expect(body).toContain(`id="${id}"`);
+    }
+  });
+
+  it("links only to public same-origin paths", async () => {
+    const { body } = await fetchLanding();
+    const paths = [...body.matchAll(/href="(\/[^"#?]*)"/g)]
+      .map((m) => m[1])
+      .filter((path): path is string => path !== undefined);
+    expect(paths).toContain("/health");
+    expect(paths).not.toContain("/repos");
+
+    for (const path of new Set(paths)) {
+      const { status } = await fetchPath(path);
+      expect(status).toBeLessThan(400);
     }
   });
 });

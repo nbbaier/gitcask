@@ -1,4 +1,5 @@
 .cursor/hooks/state/continual-learning*
+.claude/settings.local.json
 .dev.vars
 .wrangler/
 *.log

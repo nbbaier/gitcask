@@ -1,5 +1,6 @@
 /// <reference types="@cloudflare/vitest-pool-workers/types" />
 
+// biome-ignore lint/style/noNamespace: ambient augmentation required by @cloudflare/vitest-pool-workers (types env from cloudflare:test)
 declare namespace Cloudflare {
   interface Env {
     ADMIN_TOKEN: string;

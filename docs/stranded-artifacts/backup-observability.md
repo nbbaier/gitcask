@@ -109,11 +109,16 @@ This work should let operators and a demo audience answer:
 
 ## Relationship To Existing Plans
 
-- Run after the verification baseline in `plans/001-verification-baseline.md`.
-- Coordinate with `plans/003-auth-gate-debug-endpoints.md`; durable Job Events
-  should replace the public container job debug buffer.
-- Coordinate with `plans/004-rescue-stuck-queued-jobs.md`; stale queued/running
-  behavior should be reflected in the event model.
+- The active
+  [June sprint plan](../plans/2026-06-23-001-feat-june-sprint-honest-landing-plan.md)
+  supersedes the archived verification-baseline plan.
+- Coordinate with the archived
+  [debug-endpoint plan](./outdated/plans/003-auth-gate-debug-endpoints.md);
+  durable Job Events should replace the public container job debug buffer. The
+  active June plan owns the immediate go-live decision.
+- Coordinate with the archived
+  [stuck-queued-jobs plan](./outdated/plans/004-rescue-stuck-queued-jobs.md);
+  stale queued/running behavior should be reflected in the event model.
 
 ## Deferred Orchestration Question
 
@@ -121,4 +126,3 @@ The branch also preserved a Cloudflare Workflows decision memo. The useful
 conclusion was: keep the Queue-based engine for now, and revisit Workflows
 only if custom retry/deadline/callback code remains a recurring source of
 bugs after observability improves.
-

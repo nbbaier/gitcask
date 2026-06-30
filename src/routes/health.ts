@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { adminAuth } from "../lib/auth.ts";
 import type { Env } from "../types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -32,7 +33,7 @@ app.get("/", async (c) => {
 });
 
 // Debug: test container's outbound connectivity to the worker
-app.post("/debug/connectivity", async (c) => {
+app.post("/debug/connectivity", adminAuth, async (c) => {
   const { job_id } = await c.req.json<{ job_id?: string }>();
   const testJobId = job_id ?? "test-connectivity";
   const targetUrl = `${c.env.WORKER_URL}/internal/jobs/${testJobId}/progress`;
@@ -60,7 +61,7 @@ app.post("/debug/connectivity", async (c) => {
 });
 
 // Debug: get recent job statuses from the container
-app.get("/debug/container-jobs", async (c) => {
+app.get("/debug/container-jobs", adminAuth, async (c) => {
   try {
     const id = c.env.CONTAINER.idFromName("backup");
     const stub = c.env.CONTAINER.get(id);

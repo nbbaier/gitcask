@@ -38,7 +38,8 @@ dist/
 .cursor/hooks/state/continual-learning.json
 ```
 
-  Missing: `.env`, `.DS_Store`, `.cachebro/`. Verified at planning time: `.env` is **untracked** (never committed — `git ls-files` shows nothing), so this is prevention, not history surgery. Do NOT print the `.env` contents anywhere.
+Missing: `.env`, `.DS_Store`, `.cachebro/`. Verified at planning time: `.env` is **untracked** (never committed — `git ls-files` shows nothing), so this is prevention, not history surgery. Do NOT print the `.env` contents anywhere.
+
 - Junk files present: `.DS_Store` at root, `src/.DS_Store`, `cli/.DS_Store`, `src/landing/.DS_Store`; `src/landing/.cachebro/cache.db` + `cache.db-wal`. Also `src/landing/.claude/settings.local.json` (leave it; just ensure ignored patterns don't sweep `.claude/` config you shouldn't delete).
 - `wrangler.jsonc` — top-level config (lines ~1–62: `vars.WORKER_URL = "http://localhost:8787"`, `d1_databases`, `r2_buckets`, `queues`, `durable_objects`, `migrations`, `triggers`, `containers`) and an `env.production` block (lines ~64 onward) that repeats **every binding identically** — same `database_id`, same bucket, same queue, same container — differing only in `vars.WORKER_URL = "https://gitcask-production.nico-baier.workers.dev"`.
 - `package.json` deploy script: `"deploy": "wrangler deploy --env=production"`. Dev script: `"dev": "wrangler dev"` (uses top-level config + `.dev.vars` overrides).
@@ -50,16 +51,17 @@ dist/
 
 ## Commands you will need
 
-| Purpose      | Command                                   | Expected on success                |
-|--------------|-------------------------------------------|------------------------------------|
-| Typecheck    | `bun run typecheck`                       | exit 0                             |
-| Tests        | `bun run test`                            | all pass                           |
-| Lint         | `bun run check`                           | exit 0                             |
+| Purpose      | Command                                                                                              | Expected on success                  |
+| ------------ | ---------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Typecheck    | `bun run typecheck`                                                                                  | exit 0                               |
+| Tests        | `bun run test`                                                                                       | all pass                             |
+| Lint         | `bun run check`                                                                                      | exit 0                               |
 | Dry-run prod | `bunx wrangler deploy --dry-run --env=production` then after Step 3 `bunx wrangler deploy --dry-run` | builds successfully, bindings listed |
 
 ## Scope
 
 **In scope** (the only files you should modify/create/delete):
+
 - `.gitignore`
 - Delete: `.DS_Store`, `src/.DS_Store`, `cli/.DS_Store`, `src/landing/.DS_Store`, `src/landing/.cachebro/` (directory)
 - `wrangler.jsonc`
@@ -69,6 +71,7 @@ dist/
 - `.dev.vars` (append one line — do not read it into any report)
 
 **Out of scope** (do NOT touch):
+
 - `.env` contents and the staged agent-config files (see Current state).
 - `src/landing/.claude/settings.local.json` — leave in place.
 - Any other route or service code.
@@ -114,6 +117,7 @@ Strategy: make the **top level** the production config and delete `env.productio
 5. Update README's deploy instructions (`bunx wrangler deploy --env production` → `bunx wrangler deploy`, and the `env.production` paragraph → a note that `WORKER_URL` is set at top level and overridden locally via `.dev.vars`).
 
 **Verify (mandatory, both)**:
+
 - `bunx wrangler deploy --dry-run` → succeeds; output lists the D1 binding (`gitcask-db`), R2 bucket (`gitcask-backups`), queue producer+consumer (`gitcask-jobs`), the container/DO (`BackupContainer`), and cron trigger — i.e. identical bindings to what `--env=production` showed before the change. Run the before-version first if unsure and diff the two outputs.
 - `bun run test` → all pass (vitest reads `wrangler.jsonc` via `vitest.config.ts`; this confirms the config still parses and bindings resolve).
 

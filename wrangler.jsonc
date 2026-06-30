@@ -3,6 +3,7 @@
   "name": "gitcask",
   "main": "src/index.ts",
   "compatibility_date": "2024-12-01",
+  "rules": [{ "type": "Text", "globs": ["**/*.html"] }],
   "observability": { "enabled": true },
   "vars": {
     "WORKER_URL": "http://localhost:8787"
@@ -62,48 +63,11 @@
   ],
   "env": {
     "production": {
-      "observability": { "enabled": true },
+      "workers_dev": true,
+      "routes": [{ "pattern": "gitcask.com", "custom_domain": true }],
       "vars": {
-        "WORKER_URL": "https://gitcask-production.nico-baier.workers.dev"
-      },
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "gitcask-db",
-          "database_id": "8fb034f5-4e68-4f19-adad-b112ec374e00",
-          "migrations_dir": "drizzle"
-        }
-      ],
-      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "gitcask-backups" }],
-      "queues": {
-        "producers": [{ "queue": "gitcask-jobs", "binding": "JOB_QUEUE" }],
-        "consumers": [
-          { "queue": "gitcask-jobs", "max_batch_size": 1, "max_concurrency": 4 }
-        ]
-      },
-      "durable_objects": {
-        "bindings": [
-          {
-            "name": "CONTAINER",
-            "class_name": "BackupContainer"
-          }
-        ]
-      },
-      "migrations": [
-        {
-          "tag": "v1",
-          "new_sqlite_classes": ["BackupContainer"]
-        }
-      ],
-      "containers": [
-        {
-          "name": "gitcask-backup",
-          "class_name": "BackupContainer",
-          "image": "./container/Dockerfile",
-          "instance_type": "basic",
-          "max_instances": 1
-        }
-      ]
+        "WORKER_URL": "https://gitcask.com"
+      }
     }
   }
 }

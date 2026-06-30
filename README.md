@@ -164,14 +164,16 @@ The `env.production` section in `wrangler.jsonc` specifies the production `WORKE
 ```jsonc
 "env": {
   "production": {
+    "workers_dev": true,
+    "routes": [{ "pattern": "gitcask.com", "custom_domain": true }],
     "vars": {
-      "WORKER_URL": "https://gitcask-production.nico-baier.workers.dev"
+      "WORKER_URL": "https://gitcask.com"
     }
   }
 }
 ```
 
-Update this to match your Workers subdomain if deploying to a different account. The container service is accessed via a Cloudflare Container binding (`CONTAINER`), so no separate URL configuration is needed for it.
+Update this to match your production hostname if deploying to a different account. The container service is accessed via a Cloudflare Container binding (`CONTAINER`), so no separate URL configuration is needed for it.
 
 ### 4. Run D1 migrations remotely
 
@@ -184,6 +186,19 @@ bunx wrangler d1 migrations apply gitcask-db --remote
 ```bash
 bunx wrangler deploy --env production
 ```
+
+### Custom-domain rollback
+
+A git revert can remove the `gitcask.com` custom-domain route from `wrangler.jsonc` and point `WORKER_URL` back at a workers.dev fallback, but that only rolls back repository config. It does not undo external Cloudflare or registrar state.
+
+Use the workers.dev URL as the traffic fallback, then complete the external cleanup:
+
+1. Confirm the workers.dev deployment still serves the landing and health endpoint.
+2. Revert or edit `wrangler.jsonc` so production removes the `gitcask.com` route and sets `WORKER_URL` to the workers.dev URL.
+3. Deploy the reverted Worker config with `bunx wrangler deploy --env production`.
+4. At the registrar, move `gitcask.com` nameservers away from Cloudflare only after the replacement DNS provider has all required records.
+5. In Cloudflare, remove any stale `gitcask.com` Worker custom-domain route if it still exists.
+6. In Cloudflare SSL/TLS, delete the Advanced Certificate issued for `gitcask.com` if it is no longer needed.
 
 ### Deployment checklist
 

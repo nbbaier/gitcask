@@ -1,3 +1,17 @@
+# Runtime & Tooling (Bun)
+
+This project runs on Cloudflare Workers (Hono + D1/drizzle + R2 + Queues + Durable Objects), deployed via `wrangler`. Bun is used locally for the CLI (`bin/gitcask` → `cli/index.ts`) and as the package manager, not as the production runtime — so default to Bun for local tooling instead of Node.js, but don't reach for `Bun.serve()`, `bun:sqlite`, `Bun.redis`, or `Bun.sql`.
+
+- Use `bun <file>` instead of `node <file>` or `ts-node <file>` (e.g. running the CLI)
+- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
+- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
+- Use `bunx <package> <command>` instead of `npx <package> <command>`
+- Bun automatically loads .env, so don't use dotenv.
+- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
+- Bun.$`ls` instead of execa
+
+Tests run via `vitest` (`bun test` doesn't work here — `@cloudflare/vitest-pool-workers` is required to run tests inside the Workers runtime).
+
 # Ultracite Code Standards
 
 This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
@@ -40,21 +54,6 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 - Handle errors appropriately in async code with try-catch blocks
 - Don't use async functions as Promise executors
 
-### React & JSX
-
-- Use function components over class components
-- Call hooks at the top level only, never conditionally
-- Specify all dependencies in hook dependency arrays correctly
-- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
-- Nest children between opening and closing tags instead of passing as props
-- Don't define components inside other components
-- Use semantic HTML and ARIA attributes for accessibility:
-   - Provide meaningful alt text for images
-   - Use proper heading hierarchy
-   - Add labels for form inputs
-   - Include keyboard event handlers alongside mouse events
-   - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
-
 ### Error Handling & Debugging
 
 - Remove `console.log`, `debugger`, and `alert` statements from production code
@@ -83,23 +82,6 @@ Write code that is **accessible, performant, type-safe, and maintainable**. Focu
 - Use top-level regex literals instead of creating them in loops
 - Prefer specific imports over namespace imports
 - Avoid barrel files (index files that re-export everything)
-- Use proper image components (e.g., Next.js `<Image>`) over `<img>` tags
-
-### Framework-Specific Guidance
-
-**Next.js:**
-
-- Use Next.js `<Image>` component for images
-- Use `next/head` or App Router metadata API for head elements
-- Use Server Components for async data fetching instead of async Client Components
-
-**React 19+:**
-
-- Use ref as a prop instead of `React.forwardRef`
-
-**Solid/Svelte/Vue/Qwik:**
-
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
 
 ---
 
@@ -124,3 +106,17 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 ---
 
 Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
+
+# Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (nbbaier/gitcask), managed via the `gh` CLI. External PRs are not treated as a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+All five triage roles use their default label names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`); `wontfix` and `ready-for-agent` already exist as GitHub labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — one `CONTEXT.md` and `docs/adr/` at the repo root (not created yet; skills create them lazily). See `docs/agents/domain.md`.

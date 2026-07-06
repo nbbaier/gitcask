@@ -24,7 +24,7 @@ app.get("/", (c) => c.html(landingPage));
 app.get("/index.css", (c) =>
   c.body(landingStyles, 200, { "Content-Type": "text/css; charset=UTF-8" })
 );
-app.get("/barrel-stroke-rounded.svg", (c) =>
+app.get("/favicon.svg", (c) =>
   c.body(landingIcon, 200, { "Content-Type": "image/svg+xml" })
 );
 

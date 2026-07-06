@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import landingIcon from "./landing/favicon.svg";
 // Landing page markup/styles live in ./landing (imported as text via the
 // wrangler `Text` module rule) so they can be edited as real HTML/CSS files.
 import landingStyles from "./landing/index.css";
@@ -22,6 +23,9 @@ app.route("/health", healthRoutes);
 app.get("/", (c) => c.html(landingPage));
 app.get("/index.css", (c) =>
   c.body(landingStyles, 200, { "Content-Type": "text/css; charset=UTF-8" })
+);
+app.get("/barrel-stroke-rounded.svg", (c) =>
+  c.body(landingIcon, 200, { "Content-Type": "image/svg+xml" })
 );
 
 // Internal callback endpoint (authenticated)

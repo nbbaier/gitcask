@@ -120,3 +120,14 @@ All five triage roles use their default label names (`needs-triage`, `needs-info
 ### Domain docs
 
 Single-context layout — one `CONTEXT.md` and `docs/adr/` at the repo root (not created yet; skills create them lazily). See `docs/agents/domain.md`.
+
+## Learned User Preferences
+
+- When iterating on landing page layout, preserve production files and apply experiments in cloned variants (e.g. `index-alt.html`)
+- Prefer semantic landing markup: all page sections inside `<main>`, full-bleed section backgrounds (`.field`) with inner content constrained by `.shell`
+
+## Learned Workspace Facts
+
+- `wrangler dev` requires Docker with Buildx because the worker defines a container binding (`BackupContainer`, image `./container/Dockerfile`)
+- Local Docker runs via OrbStack; active context should be `orbstack`, and `docker-buildx` must be available (Homebrew plugin path in `~/.docker/config.json` `cliPluginsExtraDirs`)
+- Static landing page sources live under `src/landing/` (e.g. `index.html`, `index-alt.html` with paired CSS files)

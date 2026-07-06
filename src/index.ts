@@ -1,6 +1,7 @@
 import { Hono } from "hono";
-// Landing page markup lives in ./landing/index.html (imported as text via the
-// wrangler `Text` module rule) so it can be edited as a real HTML file.
+// Landing page markup/styles live in ./landing (imported as text via the
+// wrangler `Text` module rule) so they can be edited as real HTML/CSS files.
+import landingStyles from "./landing/index.css";
 import landingPage from "./landing/index.html";
 import { adminAuth } from "./lib/auth.ts";
 import { handleQueueMessage } from "./queue/consumer.ts";
@@ -19,6 +20,9 @@ const app = new Hono<{ Bindings: Env }>();
 app.route("/health", healthRoutes);
 
 app.get("/", (c) => c.html(landingPage));
+app.get("/index.css", (c) =>
+  c.body(landingStyles, 200, { "Content-Type": "text/css; charset=UTF-8" })
+);
 
 // Internal callback endpoint (authenticated)
 const internal = new Hono<{ Bindings: Env }>();

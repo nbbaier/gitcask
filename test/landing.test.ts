@@ -44,7 +44,9 @@ describe("GET / landing page", () => {
 
   it("frames gitcask as a GitHub mirror you control", async () => {
     const { body } = await fetchLanding();
-    expect(body).toContain("Mirror your GitHub repos");
+    expect(body).toContain(
+      "gitcask mirrors your GitHub repositories to your own Cloudflare R2"
+    );
   });
 
   it("resolves every in-page anchor to a real element id", async () => {

@@ -847,3 +847,16 @@ h1 .accent-word {
     text-align: center;
   }
 }
+
+@media (max-width: 480px) {
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat:last-child {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    border-left: none;
+  }
+}

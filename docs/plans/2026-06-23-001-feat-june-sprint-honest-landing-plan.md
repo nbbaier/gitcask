@@ -2,9 +2,15 @@
 ## title: "feat: gitcask June sprint — honest landing live + green baseline"
 type: feat
 date: 2026-06-23
+status: completed (U1–U7 shipped in PR #20, 2026-06-30; U8 deferred to Phase 1 — issue #19)
 origin: docs/brainstorms/2026-06-22-gitcask-positioning-roadmap-requirements.md
 
 # feat: gitcask June sprint — honest landing live + green baseline
+
+> **Completed 2026-06-30.** All committed units (U1–U7, issues #12–#18) shipped
+> in PR #20; the landing is live on gitcask.com and CI is green. U8 (end-to-end
+> backup verification) hit its timebox exit and rolled into Phase 1 as issue
+> #19. This document is retained as the plan of record for Phase 0.
 
 ## Summary
 

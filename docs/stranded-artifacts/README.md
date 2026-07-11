@@ -60,13 +60,13 @@ the work evolved. This assessment reflects current code and newer docs:
 
 | Plan | Current assessment | Treatment |
 | --- | --- | --- |
-| [001 verification baseline](./outdated/plans/001-verification-baseline.md) | Superseded and unexecuted | The active June plan U1-U3 replaces it. |
+| [001 verification baseline](./outdated/plans/001-verification-baseline.md) | Superseded and unexecuted | The completed Phase 0 (June sprint) plan's U1-U3 replaced it. |
 | [002 lifecycle test backfill](./outdated/plans/002-lifecycle-test-backfill.md) | Still relevant | Deadline-sweep and cancel-route coverage remain absent; use as source material for future reliability work. |
-| [003 auth-gate debug endpoints](./outdated/plans/003-auth-gate-debug-endpoints.md) | Still relevant and promoted | The active June plan makes this an explicit U6 go-live decision. Follow the newer plan. |
+| [003 auth-gate debug endpoints](./outdated/plans/003-auth-gate-debug-endpoints.md) | Still relevant and promoted | The completed Phase 0 (June sprint) plan made this an explicit U6 go-live decision, shipped in PR #20. |
 | [004 rescue stuck queued jobs](./outdated/plans/004-rescue-stuck-queued-jobs.md) | Still relevant | Queued jobs are not covered by the current deadline sweep; reconcile with the observability/staleness model before planning. |
 | [005 active-job atomicity](./outdated/plans/005-active-job-atomicity.md) | Still relevant | The database does not enforce one active job per repo and several transitions remain vulnerable to check-then-act races. Revalidate and rewrite before implementation. |
 | [006 bound run queries](./outdated/plans/006-bound-run-queries.md) | Still relevant, lower priority | Unbounded and in-memory run queries remain; incorporate bounded/newest-first contracts into a fresh read-surface plan. |
-| [007 repo hygiene](./outdated/plans/007-repo-hygiene.md) | Superseded as a bundle | Some small hygiene findings survive, but its deployment and landing structure conflicts with the active June plan. Split and revalidate any desired task. |
+| [007 repo hygiene](./outdated/plans/007-repo-hygiene.md) | Superseded as a bundle | Some small hygiene findings survive, but its deployment and landing structure conflicted with the completed Phase 0 (June sprint) plan. Split and revalidate any desired task. |
 | [008 input/auth hardening](./outdated/plans/008-input-auth-hardening.md) | Still relevant, lower priority | Timing-safe token comparison and tighter input bounds remain valid hardening leads, but are not current sprint scope. |
 | [009 restore/read API spike](./outdated/plans/009-restore-read-api-spike.md) | Mixed | Its latest/artifact read surface remains a Phase 1 input. Rewrite its tarball-centered restore direction around the newer Artifacts-backed clone goal. |
 

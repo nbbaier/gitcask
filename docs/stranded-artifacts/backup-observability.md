@@ -109,13 +109,14 @@ This work should let operators and a demo audience answer:
 
 ## Relationship To Existing Plans
 
-- The active
+- The completed Phase 0
   [June sprint plan](../plans/2026-06-23-001-feat-june-sprint-honest-landing-plan.md)
-  supersedes the archived verification-baseline plan.
+  (shipped in PR #20) superseded the archived verification-baseline plan; this
+  observability work is now a Phase 1 planning input.
 - Coordinate with the archived
   [debug-endpoint plan](./outdated/plans/003-auth-gate-debug-endpoints.md);
   durable Job Events should replace the public container job debug buffer. The
-  active June plan owns the immediate go-live decision.
+  completed June plan made the immediate go-live decision on this.
 - Coordinate with the archived
   [stuck-queued-jobs plan](./outdated/plans/004-rescue-stuck-queued-jobs.md);
   stale queued/running behavior should be reflected in the event model.

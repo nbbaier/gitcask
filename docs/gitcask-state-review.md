@@ -1,3 +1,19 @@
+> **Stale snapshot — corrected 2026-07-06.** This review describes the repo as
+> of 2026-06-18, before the June sprint (Phase 0) shipped in PR #20. The
+> following claims are no longer true:
+>
+> - `bun run check` no longer fails on `test/env.d.ts` (fixed, #12).
+> - A `typecheck` script (`tsc --noEmit`) now exists (#13).
+> - Verification CI exists: `.github/workflows/ci.yml` runs check, typecheck,
+>   and test on push and PR (#17).
+> - The landing page is no longer inline in `src/index.ts`; it lives in
+>   `src/landing/` and is served via text-module imports.
+> - The Worker is deployed: production serves `gitcask.com` (#16, #15).
+>
+> Still accurate and still important: the container uploads via S3 credentials
+> (not the R2 binding), and the clone→archive→upload→callback path has never
+> been verified on live infrastructure — that is Phase 1 issue #19.
+
 # gitcask State Review v2
 
 Review date: 2026-06-18

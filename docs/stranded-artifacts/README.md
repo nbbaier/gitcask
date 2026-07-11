@@ -10,13 +10,15 @@ reviews. Neither group overrides current code or newer planning documents.
 When documents disagree, use this order:
 
 1. Current code and verified runtime behavior.
-2. The active
-   [June sprint plan](../plans/2026-06-23-001-feat-june-sprint-honest-landing-plan.md).
+2. GitHub Issues, the active task tracker (see
+   [`../agents/issue-tracker.md`](../agents/issue-tracker.md)).
 3. The newer
    [positioning and roadmap](../brainstorms/2026-06-22-gitcask-positioning-roadmap-requirements.md).
-4. The [repository state review](../gitcask-state-review.md).
-5. The top-level salvage notes in this directory.
-6. Material under [`outdated/`](./outdated/).
+4. The completed Phase 0 plan (June sprint, shipped in PR #20)
+   [June sprint plan](../plans/2026-06-23-001-feat-june-sprint-honest-landing-plan.md).
+5. The [repository state review](../gitcask-state-review.md).
+6. The top-level salvage notes in this directory.
+7. Material under [`outdated/`](./outdated/).
 
 The [project brief](../gitcask-project-brief.md) supplies project context, but
 its repository description is explicitly a prior understanding and does not
@@ -88,10 +90,12 @@ was examined, not a current defect list.
 
 ## Relationship To The Current Roadmap
 
-1. **Current June sprint:** follow the active plan. It supersedes archived plan
-   001 and owns the debug-endpoint decision from plan 003.
-2. **Phase 1, make the v0 engine honest and visible:** verify one backup
-   end-to-end, create a fresh bounded read-surface plan from plan 009 Part A,
+1. **Phase 0 (June sprint) — complete:** shipped in PR #20; see the completion
+   note in the plan. It supersedes archived plan 001 and owns the
+   debug-endpoint decision from plan 003.
+2. **Phase 1 (current): make the v0 engine honest and visible:** verify one
+   backup end-to-end, create a fresh bounded read-surface plan from plan 009
+   Part A,
    and use the backup-observability note as planning input. Reliability work
    from plans 002, 004, and 005 can be scoped alongside that phase when its
    acceptance criteria are written.

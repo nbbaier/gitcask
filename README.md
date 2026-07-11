@@ -99,18 +99,17 @@ Tests use Miniflare for local emulation — no real Cloudflare services needed.
 ### Check code quality
 
 ```bash
-bun run check    # lint and type check
-bun run fix      # auto-fix issues
+bun run check      # lint and format check (Ultracite/Biome)
+bun run typecheck  # TypeScript type check (tsc --noEmit)
+bun run fix        # auto-fix issues
 ```
-
-Note: There is a known lint issue in `test/env.d.ts` (namespace declaration). This does not block development but should be resolved before deployment.
 
 ### Notes
 
 - **Cron triggers** don't fire automatically in `wrangler dev`. You can test the scheduler manually via `curl http://localhost:8787/__scheduled`.
 - **Queue processing** is emulated locally by Miniflare.
 - **Full end-to-end testing** (container cloning a repo and uploading to R2) requires real R2 API credentials and a valid GitHub PAT.
-- **Current implementation status:** The control plane (repo registration, scheduling, job tracking) is functional. The backup execution path (clone → archive → upload → callback) is implemented but unverified without live Cloudflare/GitHub/R2 credentials.
+- **Current implementation status:** The control plane (repo registration, scheduling, job tracking) is functional. The backup execution path (clone → archive → upload → callback) is implemented but unverified without live Cloudflare/GitHub/R2 credentials — live end-to-end verification is tracked as Phase 1 work (issue #19).
 - **Planned features not yet implemented:** Download/restore endpoints, artifact queryability beyond run details, and restore verification.
 
 ## Scripts
@@ -124,6 +123,9 @@ Note: There is a known lint issue in `test/env.d.ts` (namespace declaration). Th
 | `bun run db:migrate:local` | Apply D1 migrations locally     |
 | `bun run test`             | Run tests                       |
 | `bun run test:watch`       | Run tests in watch mode         |
+| `bun run typecheck`        | Type check with tsc             |
+| `bun run check`            | Lint and format check           |
+| `bun run fix`              | Auto-fix lint/format issues     |
 
 
 ## Production Deployment

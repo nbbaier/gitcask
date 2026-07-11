@@ -1,5 +1,11 @@
 # Docs State Cleanup Handoff
 
+> **Superseded.** The cleanup requested in this handoff was completed in PR #25.
+> See [`docs/README.md`](../README.md) for the current docs index and phase
+> status. The original content below is retained only for audit history.
+
+---
+
 Date: 2026-07-06
 
 ## Purpose

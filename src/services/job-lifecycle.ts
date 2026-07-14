@@ -85,7 +85,6 @@ export type MarkCompletedResult =
       ok: true;
       runId: string;
       repoId: string;
-      startedAt: string;
       finishedAt: string;
     }
   | NotFound
@@ -134,7 +133,6 @@ export async function markCompleted(
     ok: true,
     runId,
     repoId: job.repo_id,
-    startedAt: job.created_at,
     finishedAt: timestamp,
   };
 }
@@ -148,7 +146,7 @@ export type FailureOutcome =
       idempotencyKey: string;
       triggerSource: "schedule" | "manual";
     }
-  | { kind: "gave-up"; runId: string; repoId: string; attempts: number };
+  | { kind: "gave-up"; repoId: string; attempts: number };
 
 export type RecordFailureResult =
   | { ok: true; outcome: FailureOutcome }
@@ -229,7 +227,6 @@ export async function recordFailure(
     ok: true,
     outcome: {
       kind: "gave-up",
-      runId,
       repoId: job.repo_id,
       attempts: MAX_ATTEMPTS,
     },
@@ -237,7 +234,7 @@ export async function recordFailure(
 }
 
 export type MarkFailedByDeadlineResult =
-  | { ok: true; runId: string }
+  | { ok: true }
   | NotFound
   | WrongStatus<"not-running">;
 
@@ -281,11 +278,11 @@ export async function markFailedByDeadline(
     created_at: timestamp,
   });
 
-  return { ok: true, runId };
+  return { ok: true };
 }
 
 export type CancelResult =
-  | { ok: true; runId: string }
+  | { ok: true }
   | NotFound
   | WrongStatus<"already-completed">
   | WrongStatus<"already-failed">;
@@ -330,5 +327,5 @@ export async function cancel(db: DB, jobId: string): Promise<CancelResult> {
     created_at: timestamp,
   });
 
-  return { ok: true, runId };
+  return { ok: true };
 }

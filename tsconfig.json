@@ -12,8 +12,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
     "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],

@@ -4,8 +4,7 @@
     "container/server.ts",
     "scripts/*.ts",
     "test/**/*.test.ts",
-    "*.config.ts",
-    "src/index.ts"
+    "*.config.ts"
   ],
   "project": [
     "src/**/*.ts",
@@ -15,5 +14,7 @@
     "test/**/*.ts",
     "*.ts"
   ],
-  "ignoreDependencies": ["@biomejs/biome"]
+  // "cloudflare" covers the cloudflare:workers / cloudflare:test builtin
+  // specifiers, which knip misreads as the (uninstalled) cloudflare npm SDK
+  "ignoreDependencies": ["@biomejs/biome", "cloudflare"]
 }

@@ -33,7 +33,6 @@
     "@aws-sdk/client-s3": "^3.1019.0",
     "@cloudflare/workers-types": "^4.20260317.1",
     "citty": "^0.2.1",
-    "cloudflare": "^5.2.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.9"
   }

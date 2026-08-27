@@ -1,6 +1,6 @@
 import { fetchGitHubRepoState } from "../lib/github.ts";
 
-export type BackupDecision =
+type BackupDecision =
   | {
       action: "run";
       reason:
@@ -11,7 +11,7 @@ export type BackupDecision =
     }
   | { action: "skip"; reason: "unchanged"; pushed_at: string };
 
-export interface RepoBackupState {
+interface RepoBackupState {
   last_backup_at: string | null;
   last_pushed_at: string | null;
   min_full_backup_days: number;

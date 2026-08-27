@@ -3,9 +3,7 @@ import type { ContainerRequest, Env } from "../types.ts";
 
 type Repo = typeof schema.repos.$inferSelect;
 
-export type DispatchResult =
-  | { accepted: true }
-  | { accepted: false; error: string };
+type DispatchResult = { accepted: true } | { accepted: false; error: string };
 
 function buildContainerRequest(
   jobId: string,

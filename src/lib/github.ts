@@ -1,4 +1,4 @@
-export interface GitHubRepoState {
+interface GitHubRepoState {
   pushed_at: string;
 }
 
@@ -40,7 +40,7 @@ export async function fetchGitHubRepoState(
   return { pushed_at: result.pushed_at };
 }
 
-export type GitHubRepoAccessResult =
+type GitHubRepoAccessResult =
   | { ok: true }
   | { ok: false; status: number; statusText: string };
 

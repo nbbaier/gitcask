@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import { getClient, isJson } from "../config.ts";
-import { formatJobDetail, formatJobs, formatJson } from "../format.ts";
+import { getClient, output } from "../config.ts";
+import { formatJobDetail, formatJobs } from "../format.ts";
 
 export const jobsCommand = defineCommand({
   meta: { name: "jobs", description: "View active jobs" },
@@ -16,7 +16,7 @@ export const jobsCommand = defineCommand({
       run: async ({ args }) => {
         const client = getClient();
         const jobs = await client.listJobs(args.repoId || undefined);
-        console.log(isJson() ? formatJson(jobs) : formatJobs(jobs));
+        output(jobs, formatJobs);
       },
     }),
 
@@ -32,7 +32,7 @@ export const jobsCommand = defineCommand({
       run: async ({ args }) => {
         const client = getClient();
         const job = await client.getJob(args.jobId);
-        console.log(isJson() ? formatJson(job) : formatJobDetail(job));
+        output(job, formatJobDetail);
       },
     }),
 

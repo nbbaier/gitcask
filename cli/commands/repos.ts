@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import { getClient, isJson } from "../config.ts";
-import { formatJson, formatRepos } from "../format.ts";
+import { getClient, output } from "../config.ts";
+import { formatRepos } from "../format.ts";
 
 export const reposCommand = defineCommand({
   meta: { name: "repos", description: "Manage repos" },
@@ -18,7 +18,7 @@ export const reposCommand = defineCommand({
         const enabled =
           args.enabled === undefined ? undefined : args.enabled === "true";
         const repos = await client.listRepos(enabled);
-        console.log(isJson() ? formatJson(repos) : formatRepos(repos));
+        output(repos, formatRepos);
       },
     }),
 
@@ -47,11 +47,7 @@ export const reposCommand = defineCommand({
           ? Number.parseInt(args.interval, 10)
           : undefined;
         const repo = await client.addRepo(owner, name, interval);
-        if (isJson()) {
-          console.log(formatJson(repo));
-        } else {
-          console.log(`Added repo ${owner}/${name} (id: ${repo.id})`);
-        }
+        output(repo, ({ id }) => `Added repo ${owner}/${name} (id: ${id})`);
       },
     }),
 
@@ -82,11 +78,7 @@ export const reposCommand = defineCommand({
           updates.enabled = args.enabled === "true";
         }
         const repo = await client.updateRepo(args.id, updates);
-        if (isJson()) {
-          console.log(formatJson(repo));
-        } else {
-          console.log(`Updated repo ${repo.owner}/${repo.name}`);
-        }
+        output(repo, (r) => `Updated repo ${r.owner}/${r.name}`);
       },
     }),
 
@@ -121,11 +113,10 @@ export const reposCommand = defineCommand({
           }
         }
         await client.deleteRepo(args.id);
-        if (isJson()) {
-          console.log(formatJson({ deleted: true, id: args.id }));
-        } else {
-          console.log(`Deleted repo ${args.id}`);
-        }
+        output(
+          { deleted: true, id: args.id },
+          ({ id }) => `Deleted repo ${id}`
+        );
       },
     }),
 
@@ -141,13 +132,10 @@ export const reposCommand = defineCommand({
       run: async ({ args }) => {
         const client = getClient();
         const result = await client.triggerBackup(args.id);
-        if (isJson()) {
-          console.log(formatJson(result));
-        } else {
-          console.log(
-            `Triggered backup for ${args.id} (job: ${result.job_id})`
-          );
-        }
+        output(
+          result,
+          ({ job_id }) => `Triggered backup for ${args.id} (job: ${job_id})`
+        );
       },
     }),
   },

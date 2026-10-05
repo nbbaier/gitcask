@@ -5,12 +5,14 @@ This project runs on Cloudflare Workers (Hono + D1/drizzle + R2 + Queues + Durab
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>` (e.g. running the CLI)
 - Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
 - Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
+- Use `bunx <package> <command>` instead of `npx <package> <command>`, except `wrangler`: call the globally installed `wrangler` directly (the project-local copy lags behind)
 - Bun automatically loads .env, so don't use dotenv.
 - Prefer `Bun.file` over `node:fs`'s readFile/writeFile
 - Bun.$`ls` instead of execa
 
-Tests run via `vitest` (`bun test` doesn't work here — `@cloudflare/vitest-pool-workers` is required to run tests inside the Workers runtime).
+Tests run via `vitest` (`bun test` doesn't work here — `@cloudflare/vitest-plugin` is required to run tests inside the Workers runtime).
+
+Architecture, backup lifecycle, and module map: `CONTEXT.md`. Production and R2 gotchas: `docs/ops.md`. Full local check: `bun run verify`.
 
 # Ultracite Code Standards
 

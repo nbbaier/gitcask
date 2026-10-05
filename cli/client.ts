@@ -10,7 +10,7 @@ interface LastRun {
   status: string;
 }
 
-interface Repo {
+export interface Repo {
   created_at: string;
   enabled: boolean;
   id: string;
@@ -22,7 +22,7 @@ interface Repo {
   updated_at: string;
 }
 
-interface Job {
+export interface Job {
   attempt: number;
   created_at: string;
   deadline_at: string | null;
@@ -35,7 +35,7 @@ interface Job {
   updated_at: string;
 }
 
-interface Run {
+export interface Run {
   created_at: string;
   error: string | null;
   finished_at: string | null;
@@ -56,7 +56,7 @@ interface Artifact {
   size_bytes: number;
 }
 
-interface RunDetail extends Run {
+export interface RunDetail extends Run {
   artifacts: Artifact[];
 }
 

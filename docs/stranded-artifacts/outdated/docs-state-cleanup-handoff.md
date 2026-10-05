@@ -1,5 +1,7 @@
 # Docs State Cleanup Handoff
 
+> **Superseded.** Historical snapshot; the code has moved on. Verify any claim here against current code before acting on it. Current work lives in GitHub Issues.
+
 Date: 2026-07-06
 
 ## Purpose

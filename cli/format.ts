@@ -1,3 +1,5 @@
+import type { Job, Repo, Run, RunDetail } from "./client";
+
 type Row = Record<string, unknown>;
 
 interface Column {
@@ -10,10 +12,12 @@ export function formatJson(data: unknown): string {
   return JSON.stringify(data, null, 2);
 }
 
-function formatTable(rows: Row[], columns: Column[]): string {
-  if (rows.length === 0) {
+function formatTable(items: object[], columns: Column[]): string {
+  if (items.length === 0) {
     return "No results.";
   }
+
+  const rows: Row[] = items.map((item) => ({ ...item }));
 
   const widths = columns.map((col) => {
     const values = rows.map((r) => String(r[col.key] ?? "").length);
@@ -21,12 +25,12 @@ function formatTable(rows: Row[], columns: Column[]): string {
   });
 
   const header = columns
-    .map((col, i) => col.label.padEnd(widths[i]))
+    .map((col, i) => col.label.padEnd(widths[i] ?? 0))
     .join("  ");
   const separator = widths.map((w) => "-".repeat(w)).join("  ");
   const body = rows.map((row) =>
     columns
-      .map((col, i) => String(row[col.key] ?? "").padEnd(widths[i]))
+      .map((col, i) => String(row[col.key] ?? "").padEnd(widths[i] ?? 0))
       .join("  ")
   );
 
@@ -43,16 +47,9 @@ const repoColumns: Column[] = [
   { key: "next_run_at", label: "NEXT RUN" },
 ];
 
-export function formatRepos(repos: Row[]): string {
+export function formatRepos(repos: Repo[]): string {
   const rows = repos.map((r) => {
-    const lastRun = r.last_run as
-      | {
-          status: string;
-          started_at: string;
-          finished_at: string | null;
-        }
-      | null
-      | undefined;
+    const lastRun = r.last_run;
 
     return {
       ...r,
@@ -87,17 +84,17 @@ function formatElapsed(createdAt: string): string {
   return `${minutes}m${remainingSeconds}s`;
 }
 
-export function formatJobs(jobs: Row[]): string {
+export function formatJobs(jobs: Job[]): string {
   const rows = jobs.map((j) => ({
     ...j,
     stage: j.stage ?? "-",
-    elapsed: formatElapsed(j.created_at as string),
+    elapsed: formatElapsed(j.created_at),
   }));
   return formatTable(rows, jobColumns);
 }
 
-export function formatJobDetail(job: Row): string {
-  const elapsed = formatElapsed(job.created_at as string);
+export function formatJobDetail(job: Job): string {
+  const elapsed = formatElapsed(job.created_at);
   const lines = [
     `Job:      ${job.id}`,
     `Repo:     ${job.repo_id}`,
@@ -123,7 +120,7 @@ const runColumns: Column[] = [
   { key: "error", label: "ERROR" },
 ];
 
-export function formatRuns(runs: Row[]): string {
+export function formatRuns(runs: Run[]): string {
   const rows = runs.map((r) => ({
     ...r,
     finished_at: r.finished_at ?? "-",
@@ -139,7 +136,7 @@ const artifactColumns: Column[] = [
   { key: "sha256", label: "SHA256" },
 ];
 
-export function formatRunDetail(run: Row & { artifacts?: Row[] }): string {
+export function formatRunDetail(run: RunDetail): string {
   const lines = [
     `Run:      ${run.id}`,
     `Status:   ${run.status}`,

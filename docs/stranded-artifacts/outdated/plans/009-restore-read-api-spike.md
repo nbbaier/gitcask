@@ -1,5 +1,7 @@
 # Plan 009: Surface backups — latest/artifact read endpoints now, restore/download design spike
 
+> **Superseded.** Historical snapshot; the code has moved on. Verify any claim here against current code before acting on it. Current work lives in GitHub Issues.
+
 > **Executor instructions**: Follow this plan step by step. Run every
 > verification command and confirm the expected result before moving to the
 > next step. If anything in the "STOP conditions" section occurs, stop and

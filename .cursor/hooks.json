@@ -1,8 +1,8 @@
 {
   "hooks": {
-    "afterFileEdit": [
+    "stop": [
       {
-        "command": "bun fix --skip=correctness/noUnusedImports"
+        "command": "bun fix"
       }
     ]
   },

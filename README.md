@@ -14,6 +14,7 @@ Automated GitHub repository backup service powered by Cloudflare Workers, D1, R2
 ```bash
 bun install
 cd container && bun install && cd ..
+bun run hooks:install  # pre-commit hook: check + typecheck
 ```
 
 ### 2. Configure environment variables
@@ -101,6 +102,8 @@ Tests use Miniflare for local emulation — no real Cloudflare services needed.
 ```bash
 bun run check      # lint and format check (Ultracite/Biome)
 bun run typecheck  # TypeScript type check (tsc --noEmit)
+bun run knip       # unused files, exports, and dependencies
+bun run verify     # all of the above plus tests (what CI runs)
 bun run fix        # auto-fix issues
 ```
 

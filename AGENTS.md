@@ -12,7 +12,7 @@ This project runs on Cloudflare Workers (Hono + D1/drizzle + R2 + Queues + Durab
 
 Tests run via `vitest` (`bun test` doesn't work here — `@cloudflare/vitest-plugin` is required to run tests inside the Workers runtime).
 
-Architecture, backup lifecycle, and module map: `CONTEXT.md`. Production and R2 gotchas: `docs/ops.md`. Full local check: `bun run verify`.
+Architecture, backup lifecycle, and module map: `ARCHITECTURE.md`. Production and R2 gotchas: `docs/ops.md`. Full local check: `bun run verify`.
 
 # Ultracite Code Standards
 

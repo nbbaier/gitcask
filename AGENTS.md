@@ -121,7 +121,7 @@ All five triage roles use their default label names (`needs-triage`, `needs-info
 
 ### Domain docs
 
-Single-context layout — one `CONTEXT.md` and `docs/adr/` at the repo root (not created yet; skills create them lazily). See `docs/agents/domain.md`.
+Single-context layout — one `GLOSSARY.md` and `docs/adr/` at the repo root (not created yet; skills create them lazily). See `docs/agents/domain.md`.
 
 ## Learned User Preferences
 

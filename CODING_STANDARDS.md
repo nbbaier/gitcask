@@ -9,4 +9,3 @@ Bun is the local package manager and CLI runtime; production runs on Cloudflare 
 - Run files with `bun <file>`, scripts with `bun run <script>`, packages with `bunx`.
 - Bun loads `.env` automatically, so read env vars directly.
 - Use `Bun.file` for file I/O and `` Bun.$`cmd` `` for shell calls in local tooling.
-- Worker code uses Workers APIs (Hono, D1 via drizzle, R2, Queues, Durable Objects) rather than Bun runtime APIs.

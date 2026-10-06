@@ -2,6 +2,12 @@
 
 The routine steps (secrets, migrations, deploy) are in the README's "Production Deployment" section. This file covers what the README doesn't: things that bit previous sessions.
 
+## Wrangler and local dev
+
+- Call the globally installed `wrangler`; the project-local copy lags behind.
+- `wrangler dev` needs Docker with Buildx, because the worker defines a container binding (`BackupContainer`, image `./container/Dockerfile`).
+- Docker runs via OrbStack: the active context should be `orbstack`, and `docker-buildx` must resolve (Homebrew plugin path in `~/.docker/config.json` `cliPluginsExtraDirs`).
+
 ## Bindings
 
 `env.production` in `wrangler.jsonc` does **not** inherit top-level bindings: D1, R2, Queues, the container/DO binding, and vars. When you add a binding, add it in both places, otherwise production deploys without it. Wrangler only warns about this; it doesn't fail.

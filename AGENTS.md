@@ -117,11 +117,11 @@ Issues live in GitHub Issues (nbbaier/gitcask), managed via the `gh` CLI. Extern
 
 ### Triage labels
 
-All five triage roles use their default label names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`); `wontfix` and `ready-for-agent` already exist as GitHub labels. See `docs/agents/triage-labels.md`.
+All five triage roles use their default label names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context layout — one `GLOSSARY.md` and `docs/adr/` at the repo root (not created yet; skills create them lazily). See `docs/agents/domain.md`.
+Single-context layout — one `GLOSSARY.md` and `docs/adr/` at the repo root (`docs/adr/` not created yet; skills create it lazily). See `docs/agents/domain.md`.
 
 ## Learned User Preferences
 

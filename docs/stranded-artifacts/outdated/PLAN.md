@@ -1,5 +1,7 @@
 # Gitcask v1 Implementation Plan
 
+> **Superseded.** Historical snapshot; the code has moved on. Verify any claim here against current code before acting on it. Current work lives in GitHub Issues.
+
 ## Summary
 Build a single-tenant backup service (`TypeScript + Bun`) that backs up explicit GitHub repos to Cloudflare R2 as immutable `tar.gz` mirror artifacts, with API management, scheduled jobs, and run history.
 

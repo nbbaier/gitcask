@@ -1,5 +1,7 @@
 # Thermo-Nuclear Code Quality Review — Change Detection
 
+> **Superseded.** Historical snapshot; the code has moved on. Verify any claim here against current code before acting on it. Current work lives in GitHub Issues.
+
 **Date:** May 24, 2026
 **Scope:** Uncommitted change-detection work on `main`
 **Verdict:** REQUEST CHANGES

@@ -1,5 +1,7 @@
 # Codebase Review (March 28, 2026)
 
+> **Superseded.** Historical snapshot; the code has moved on. Verify any claim here against current code before acting on it. Current work lives in GitHub Issues.
+
 ## Scope
 
 Reviewed Worker API routes, queue/scheduler/retention services, container backup service, CLI client, tests, and deployment/docs configuration.

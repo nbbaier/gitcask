@@ -1,5 +1,7 @@
 # Architecture Deepening Pass (May 2026)
 
+> **Superseded.** Historical snapshot; the code has moved on. Verify any claim here against current code before acting on it. Current work lives in GitHub Issues.
+
 A pass over the codebase looking for shallow modules — places where the interface costs nearly as much as the implementation — and extracting deeper seams that concentrate complexity instead of moving it around.
 
 ## What landed

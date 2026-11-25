@@ -1,17 +1,15 @@
 # gitcask docs index
 
-Orientation for humans and agents. Updated 2026-07-06.
+Orientation for humans and agents. For live status, read GitHub Issues
+(`gh issue list`); this file holds only durable orientation.
 
 ## Where things stand
 
-- **Phase 0 (June sprint) — complete.** Honest landing live on gitcask.com,
-  green CI baseline, Cloudflare Artifacts beta access confirmed. Shipped in
-  PR #20; PRD was issue #11.
-- **Phase 1 — current.** Make the v0 engine honest and visible: verify one
-  real backup end-to-end on live infra (#19), expose a latest/artifact read
-  surface, add durable job-event observability. Tracked on GitHub Issues.
-- **Phase 2 — next.** Cloudflare Artifacts integration spike (clone serving,
-  GitHub import, scoped tokens).
+- **Phase 0 (June sprint) — complete.** Honest landing, green CI baseline,
+  Artifacts beta access. PR #20, PRD #11.
+- **Phase 1 — current.** Make the v0 engine honest and visible (spec #21).
+  End-to-end backup on live infra verified (#19, closed).
+- **Phase 2 — next.** Cloudflare Artifacts integration spike.
 
 ## Where authority lives
 
@@ -30,3 +28,4 @@ Orientation for humans and agents. Updated 2026-07-06.
 - `brainstorms/` — strategy documents.
 - `stranded-artifacts/` — salvage notes from unmerged branches.
 - `agents/` — tracker, triage-label, and domain conventions for agents.
+- `ops.md` — production and R2 gotchas (bindings, secrets, verification).

@@ -3,8 +3,8 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
-import { validateGitHubRepoAccess } from "../lib/github.ts";
-import { generateId, now } from "../lib/id.ts";
+import { fetchGitHubRepo } from "../lib/github.ts";
+import { enqueueJob } from "../services/job-lifecycle.ts";
 import type { Env } from "../types.ts";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -39,7 +39,7 @@ app.post("/", async (c) => {
     return c.json({ error: "Repo already exists", id: existing.id }, 409);
   }
 
-  const ghAccess = await validateGitHubRepoAccess(
+  const ghAccess = await fetchGitHubRepo(
     body.owner,
     body.name,
     c.env.GITHUB_PAT
@@ -54,8 +54,8 @@ app.post("/", async (c) => {
     );
   }
 
-  const id = generateId();
-  const timestamp = now();
+  const id = crypto.randomUUID();
+  const timestamp = new Date().toISOString();
   const nextRun = new Date(Date.now() + interval * 60 * 1000).toISOString();
 
   await db.insert(schema.repos).values({
@@ -180,7 +180,9 @@ app.patch("/:id", async (c) => {
     return c.json({ error: "Repo not found" }, 404);
   }
 
-  const updates: Record<string, unknown> = { updated_at: now() };
+  const updates: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
 
   if (body.interval_minutes !== undefined) {
     if (body.interval_minutes < 5) {
@@ -318,29 +320,7 @@ app.post("/:id/trigger", async (c) => {
   }
 
   // Create job and route it through the queue so retries behave like scheduled work.
-  const jobId = generateId();
-  const timestamp = now();
-  const idempotencyKey = `manual_${id}_${Date.now()}`;
-
-  await db.insert(schema.jobs).values({
-    id: jobId,
-    repo_id: id,
-    trigger_source: "manual",
-    idempotency_key: idempotencyKey,
-    status: "queued",
-    attempt: 1,
-    deadline_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-    created_at: timestamp,
-    updated_at: timestamp,
-  });
-
-  await c.env.JOB_QUEUE.send({
-    job_id: jobId,
-    repo_id: id,
-    idempotency_key: idempotencyKey,
-    attempt: 1,
-    trigger_source: "manual",
-  });
+  const jobId = await enqueueJob(db, c.env.JOB_QUEUE, id, "manual");
 
   console.log("[trigger] enqueued manual job", {
     job_id: jobId,

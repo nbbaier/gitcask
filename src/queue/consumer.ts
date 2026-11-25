@@ -60,7 +60,7 @@ export async function handleQueueMessage(
     error: errorMsg,
   });
 
-  const failure = await recordFailure(db, job_id, errorMsg);
+  const failure = await recordFailure(db, env.JOB_QUEUE, job_id, errorMsg);
   if (!failure.ok) {
     console.error("[queue] could not record dispatch failure", {
       job_id,
@@ -71,16 +71,6 @@ export async function handleQueueMessage(
   }
 
   if (failure.outcome.kind === "retry") {
-    await env.JOB_QUEUE.send(
-      {
-        job_id,
-        repo_id,
-        idempotency_key,
-        attempt: failure.outcome.nextAttempt,
-        trigger_source: message.body.trigger_source,
-      },
-      { delaySeconds: Math.ceil(failure.outcome.delayMs / 1000) }
-    );
     console.log("[queue] dispatch failure — retry scheduled", {
       job_id,
       attempt: failure.outcome.nextAttempt,

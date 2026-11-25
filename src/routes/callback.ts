@@ -3,7 +3,6 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
-import { generateId, now } from "../lib/id.ts";
 import { fireWebhook } from "../lib/webhook.ts";
 import type {
   FailureOutcome,
@@ -58,7 +57,7 @@ app.post("/:id/progress", async (c) => {
     return c.json({ error: "Job is not in running state" }, 409);
   }
 
-  const timestamp = now();
+  const timestamp = new Date().toISOString();
   await db
     .update(schema.jobs)
     .set({ stage, stage_updated_at: timestamp, updated_at: timestamp })
@@ -91,7 +90,7 @@ async function recordSuccessfulBackup(
     payload.object_key != null
   ) {
     await db.insert(schema.artifacts).values({
-      id: generateId(),
+      id: crypto.randomUUID(),
       run_id: result.runId,
       repo_id: repo.id,
       object_key: payload.object_key,
@@ -192,7 +191,7 @@ app.post("/:id/complete", async (c) => {
 
   // Failure path
   const error = payload.error ?? "Unknown error";
-  const failure = await recordFailure(db, jobId, error);
+  const failure = await recordFailure(db, c.env.JOB_QUEUE, jobId, error);
   if (!failure.ok) {
     console.log("[callback] rejected", {
       job_id: jobId,
@@ -203,17 +202,6 @@ app.post("/:id/complete", async (c) => {
   }
 
   if (failure.outcome.kind === "retry") {
-    await c.env.JOB_QUEUE.send(
-      {
-        job_id: jobId,
-        repo_id: failure.outcome.repoId,
-        idempotency_key: failure.outcome.idempotencyKey,
-        attempt: failure.outcome.nextAttempt,
-        trigger_source: failure.outcome.triggerSource,
-      },
-      { delaySeconds: Math.ceil(failure.outcome.delayMs / 1000) }
-    );
-
     console.log("[callback] job retrying", {
       job_id: jobId,
       attempt: failure.outcome.nextAttempt,

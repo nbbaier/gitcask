@@ -1,5 +1,3 @@
-import { fetchGitHubRepoState } from "../lib/github.ts";
-
 type BackupDecision =
   | {
       action: "run";
@@ -41,13 +39,4 @@ export function evaluateBackupNeed(
   }
 
   return { action: "run", reason: "changes_detected" };
-}
-
-export async function checkScheduledBackup(
-  repo: { name: string; owner: string } & RepoBackupState,
-  pat: string,
-  nowMs?: number
-): Promise<BackupDecision> {
-  const state = await fetchGitHubRepoState(repo.owner, repo.name, pat);
-  return evaluateBackupNeed(repo, state?.pushed_at ?? null, nowMs);
 }

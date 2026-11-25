@@ -1,6 +1,6 @@
 import { defineCommand } from "citty";
-import { getClient, isJson } from "../config.ts";
-import { formatJson, formatRunDetail, formatRuns } from "../format.ts";
+import { getClient, output } from "../config.ts";
+import { formatRunDetail, formatRuns } from "../format.ts";
 
 export const runsCommand = defineCommand({
   meta: { name: "runs", description: "View backup runs" },
@@ -17,7 +17,7 @@ export const runsCommand = defineCommand({
       run: async ({ args }) => {
         const client = getClient();
         const runs = await client.listRuns(args.repoId);
-        console.log(isJson() ? formatJson(runs) : formatRuns(runs));
+        output(runs, formatRuns);
       },
     }),
 
@@ -33,7 +33,7 @@ export const runsCommand = defineCommand({
       run: async ({ args }) => {
         const client = getClient();
         const run = await client.getRun(args.runId);
-        console.log(isJson() ? formatJson(run) : formatRunDetail(run));
+        output(run, formatRunDetail);
       },
     }),
   },

@@ -2,9 +2,11 @@ import { and, eq } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 // biome-ignore lint/performance/noNamespaceImport: schema is consumed as a namespace
 import * as schema from "../db/schema.ts";
-import { generateId, now } from "../lib/id.ts";
+import type { Env, QueueMessage } from "../types.ts";
 
 type DB = DrizzleD1Database;
+type JobQueue = Env["JOB_QUEUE"];
+type TriggerSource = QueueMessage["trigger_source"];
 
 const MAX_ATTEMPTS = 4;
 const DEADLINE_MS = 15 * 60 * 1000;
@@ -12,6 +14,40 @@ const retryBackoffMs = (attempt: number): number => 2 ** attempt * 1000;
 
 const computeDeadline = (fromMs = Date.now()): string =>
   new Date(fromMs + DEADLINE_MS).toISOString();
+
+const now = (): string => new Date().toISOString();
+
+export async function enqueueJob(
+  db: DB,
+  queue: JobQueue,
+  repoId: string,
+  triggerSource: TriggerSource
+): Promise<string> {
+  const jobId = crypto.randomUUID();
+  const timestamp = now();
+  const message: QueueMessage = {
+    job_id: jobId,
+    repo_id: repoId,
+    idempotency_key: `${triggerSource}_${repoId}_${Date.now()}`,
+    attempt: 1,
+    trigger_source: triggerSource,
+  };
+
+  await db.insert(schema.jobs).values({
+    id: jobId,
+    repo_id: repoId,
+    trigger_source: triggerSource,
+    idempotency_key: message.idempotency_key,
+    status: "queued",
+    attempt: 1,
+    deadline_at: computeDeadline(),
+    created_at: timestamp,
+    updated_at: timestamp,
+  });
+
+  await queue.send(message);
+  return jobId;
+}
 
 interface NotFound {
   ok: false;
@@ -118,7 +154,7 @@ export async function markCompleted(
     })
     .where(eq(schema.jobs.id, jobId));
 
-  const runId = generateId();
+  const runId = crypto.randomUUID();
   await db.insert(schema.runs).values({
     id: runId,
     repo_id: job.repo_id,
@@ -138,14 +174,7 @@ export async function markCompleted(
 }
 
 export type FailureOutcome =
-  | {
-      kind: "retry";
-      nextAttempt: number;
-      delayMs: number;
-      repoId: string;
-      idempotencyKey: string;
-      triggerSource: "schedule" | "manual";
-    }
+  | { kind: "retry"; nextAttempt: number; delayMs: number }
   | { kind: "gave-up"; repoId: string; attempts: number };
 
 export type RecordFailureResult =
@@ -153,8 +182,10 @@ export type RecordFailureResult =
   | NotFound
   | WrongStatus<"not-running">;
 
+// On retry, the job is re-enqueued with backoff before returning.
 export async function recordFailure(
   db: DB,
+  queue: JobQueue,
   jobId: string,
   error: string
 ): Promise<RecordFailureResult> {
@@ -187,17 +218,19 @@ export async function recordFailure(
       })
       .where(eq(schema.jobs.id, jobId));
 
-    return {
-      ok: true,
-      outcome: {
-        kind: "retry",
-        nextAttempt,
-        delayMs: retryBackoffMs(job.attempt),
-        repoId: job.repo_id,
-        idempotencyKey: job.idempotency_key,
-        triggerSource: job.trigger_source,
+    const delayMs = retryBackoffMs(job.attempt);
+    await queue.send(
+      {
+        job_id: jobId,
+        repo_id: job.repo_id,
+        idempotency_key: job.idempotency_key,
+        attempt: nextAttempt,
+        trigger_source: job.trigger_source,
       },
-    };
+      { delaySeconds: Math.ceil(delayMs / 1000) }
+    );
+
+    return { ok: true, outcome: { kind: "retry", nextAttempt, delayMs } };
   }
 
   await db
@@ -211,7 +244,7 @@ export async function recordFailure(
     })
     .where(eq(schema.jobs.id, jobId));
 
-  const runId = generateId();
+  const runId = crypto.randomUUID();
   await db.insert(schema.runs).values({
     id: runId,
     repo_id: job.repo_id,
@@ -266,7 +299,7 @@ export async function markFailedByDeadline(
     })
     .where(eq(schema.jobs.id, jobId));
 
-  const runId = generateId();
+  const runId = crypto.randomUUID();
   await db.insert(schema.runs).values({
     id: runId,
     repo_id: job.repo_id,
@@ -315,7 +348,7 @@ export async function cancel(db: DB, jobId: string): Promise<CancelResult> {
     })
     .where(eq(schema.jobs.id, jobId));
 
-  const runId = generateId();
+  const runId = crypto.randomUUID();
   await db.insert(schema.runs).values({
     id: runId,
     repo_id: job.repo_id,

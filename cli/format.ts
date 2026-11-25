@@ -8,10 +8,6 @@ interface Column {
   width?: number;
 }
 
-export function formatJson(data: unknown): string {
-  return JSON.stringify(data, null, 2);
-}
-
 function formatTable(items: object[], columns: Column[]): string {
   if (items.length === 0) {
     return "No results.";

@@ -2,10 +2,10 @@ import { and, eq, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 // biome-ignore lint/performance/noNamespaceImport: We need to import the schema as a namespace
 import * as schema from "../db/schema.ts";
-import { generateId, now } from "../lib/id.ts";
-import type { Env, QueueMessage } from "../types.ts";
-import { checkScheduledBackup } from "./change-detection.ts";
-import { markFailedByDeadline } from "./job-lifecycle.ts";
+import { fetchGitHubRepo } from "../lib/github.ts";
+import type { Env } from "../types.ts";
+import { evaluateBackupNeed } from "./change-detection.ts";
+import { enqueueJob, markFailedByDeadline } from "./job-lifecycle.ts";
 
 function advanceNextRunAt(
   repo: { interval_minutes: number },
@@ -16,7 +16,7 @@ function advanceNextRunAt(
 
 export async function handleScheduledEvent(env: Env): Promise<void> {
   const db = drizzle(env.DB);
-  const timestamp = now();
+  const timestamp = new Date().toISOString();
 
   console.log("[scheduler] cron tick");
 
@@ -33,7 +33,11 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
   console.log("[scheduler] repos due for backup", { count: dueRepos.length });
 
   for (const repo of dueRepos) {
-    const decision = await checkScheduledBackup(repo, env.GITHUB_PAT);
+    const github = await fetchGitHubRepo(repo.owner, repo.name, env.GITHUB_PAT);
+    const decision = evaluateBackupNeed(
+      repo,
+      github.ok ? github.pushed_at : null
+    );
 
     if (decision.action === "skip") {
       await db
@@ -56,30 +60,7 @@ export async function handleScheduledEvent(env: Env): Promise<void> {
       reason: decision.reason,
     });
 
-    const jobId = generateId();
-    const idempotencyKey = `schedule_${repo.id}_${Date.now()}`;
-
-    await db.insert(schema.jobs).values({
-      id: jobId,
-      repo_id: repo.id,
-      trigger_source: "schedule",
-      idempotency_key: idempotencyKey,
-      status: "queued",
-      attempt: 1,
-      deadline_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-      created_at: timestamp,
-      updated_at: timestamp,
-    });
-
-    const message: QueueMessage = {
-      job_id: jobId,
-      repo_id: repo.id,
-      idempotency_key: idempotencyKey,
-      attempt: 1,
-      trigger_source: "schedule",
-    };
-
-    await env.JOB_QUEUE.send(message);
+    const jobId = await enqueueJob(db, env.JOB_QUEUE, repo.id, "schedule");
 
     console.log("[scheduler] enqueued job", {
       job_id: jobId,
